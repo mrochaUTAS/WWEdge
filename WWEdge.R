@@ -1,21 +1,18 @@
-### Internal Checking area calculations ######
-### Author: Manuel Rocha
-##############################################
+##########################################################################
+### WWEdge - R scripts for wood checks and shrinkage quantification
+### Author: Manuel Rocha 
+##########################################################################
+
 #install.packages("BiocManager", dependencies = T)
 #BiocManager::install("EBImage")
+
 library("EBImage")
 library("stringr")
 library("AFM")
 library("dplyr")
 library("ggplot2")
-library("grid")
-library("GGally")
-library("extendedForest")
-###################################################################
-### Step 1 : Total Area and checks area measurement of dried wedges
-###################################################################
 
-### Set working directory DESK HARD DISK
+### Set working directory for green and dried wedges
 pathName_GW <- "D:/wedges_backup_change_resolution/wedges/green_w_low_resolution/single_pics_mod1/"
 pathName_DW <- "D:/wedges_backup_change_resolution/wedges/dried_w_low_resolution/single_mod1/"
 
@@ -27,21 +24,10 @@ pathName_DW <- "D:/Area_Detection/dried_w_low_resolution/single_pics/"
 pathName_GW <- "E:/green_w_low_resolution/single_pics_mod1/"
 pathName_DW <- "E:/dried_w_low_resolution/single_mod1/"
 
-scoring <- read.csv("Scoring.csv")
-scoring$treeID<- paste(scoring$site2,"_",scoring$Tree,"_",scoring$wedge,"_",scoring$side,sep="")
-scoring$treeID2<- paste(scoring$site2,"_",scoring$Tree,"_",scoring$wedge,sep="")
-
-
-SideCorrection <- read.csv("Wedge_Side_corrections.csv")
-SideCorrection$TreeID <- paste(SideCorrection$site,"_",SideCorrection$tree,"_",SideCorrection$wedge,"_",SideCorrection$side2, sep="")
-
-
 filelist_GW <- list.files(path = pathName_GW , pattern = ".jpg")
 filelist_DW <- list.files(path = pathName_DW , pattern = ".jpg")
 
-filelist_GW <- filelist_GW[str_detect(filelist_GW, "_A_")] # filter by A
-
-wedge_full_ID <- unlist((strsplit(filelist_GW[-c(142)], "_"))) ## exlude record 142. need to check
+wedge_full_ID <- unlist((strsplit(filelist_GW, "_")))
 greenID1 <- c()
 greenID2 <- c()
 greenID3 <- c()
@@ -65,106 +51,9 @@ for (i in seq(4,length(wedge_full_ID),4)) {
 wedgeDF_ID <- cbind.data.frame(site=greenID1,tree=greenID2,wedge=greenID3,side=greenID4,idd=1:length(greenID1))
 wedgeDF_ID$tree <- as.numeric(as.character(wedgeDF_ID$tree))
 wedgeDF_ID$treeID2 <- paste(wedgeDF_ID$site,"_",wedgeDF_ID$tree,"_",wedgeDF_ID$wedge, sep="")
-wedgeDF_ID2 <- merge(wedgeDF_ID,scoring, by="treeID2")
 wedgeDF_ID2 <- wedgeDF_ID2[order(-wedgeDF_ID2$Score_wedgeA, wedgeDF_ID2$Treatment, wedgeDF_ID2$site),]
 
-# ### Run only for subsampling ####################################################################
-# subsample1 <- c(
-#   "F_44_A",  "F_12_A",  "G_32_A",  "G_44_A",  "U_27_A",  "U_23_A", ### score 5-6
-#   "F_46_A",  "F_5_A",  "G_24_A",  "G_16_A",  "U_2_A",  "U_48_A", ### score 2-4 outerwood
-#   "F_37_A",  "F_17_A",  "G_42_A",  "G_2_A",  "U_29_A",  "U_13_A", ### score 2-4 corewood
-#   "F_40_A",  "F_26_A",  "G_22_A",  "G_43_A",  "U_7_A",  "U_22_A" ### score 1
-#   
-# )
-# wedgeDF_ID2 <- wedgeDF_ID2[which(wedgeDF_ID2$treeID2 %in% subsample1),]
-# wedgeDF_ID2 <- wedgeDF_ID2[order(match(wedgeDF_ID2$treeID2,subsample1)),]
-# #################################################################################################
-
-
-### Run only for subsampling ####################################################################
-# subsample1 <- c(
-#   "F_1_A",
-#   "F_3_A",
-#   "F_4_A",
-#   "F_5_A",
-#   "F_6_A",
-#   "F_7_A",
-#   "F_8_A",
-#   "F_10_A",
-#   "F_11_A",
-#   "F_12_A",
-#   "F_13_A",
-#   "F_14_A",
-#   "F_15_A",
-#   "F_16_A",
-#   "F_17_A",
-#   "F_18_A",
-#   "F_19_A",
-#   "F_20_A",
-#   "F_21_A",
-#   "F_22_A",
-#   "F_24_A",
-#   "F_25_A",
-#   "F_26_A",
-#   "F_27_A",
-#   "F_28_A",
-#   "F_29_A",
-#   "F_30_A",
-#   "F_40_A",
-#   "F_46_A",
-#   "G_2_A",
-#   "U_2_A",
-#   "U_7_A",
-#   "U_13_A",
-#   "U_29_A"
-# )
-
-subsample1 <- c(
-  
-  # Score 2
-  "F_6_A",
-  "F_8_A",
-  "F_14_A",
-  "F_15_A",
-  "F_16_A",
-  
-  # Score 3
-  "F_29_A",
-  "F_18_A",
-  "F_34_A",
-  "F_35_A",
-  "F_38_A",
-  
-  # Score 4
-  "F_5_A",
-  "F_17_A",
-  "F_31_A",
-  "F_37_A",
-  "F_46_A",
-  
-  # Score 5
-  "F_13_A",
-  "F_19_A",
-  "F_40_A",
-  "G_43_A",
-  "F_48_A",
-  
-  # Score 6
-  "F_7_A",
-  "F_25_A",
-  "F_33_A",
-  "G_4_A",
-  "G_22_A"
-)
-
-
-wedgeDF_ID2 <- wedgeDF_ID2[which(wedgeDF_ID2$treeID2 %in% subsample1),]
-wedgeDF_ID2 <- wedgeDF_ID2[order(match(wedgeDF_ID2$treeID2,subsample1)),]
-#################################################################################################
-
-
-selection <- wedgeDF_ID2$idd
-
+### storage
 GW_Data <- c() # Area
 DW_Data1 <- c() # Area
 DW_Data2 <- c() # Checks
@@ -175,19 +64,14 @@ DW_Data6 <- c() # wedge triangle (green and dried)
 DW_Data7 <- c() # Local curvature profiles (L-side and R-side using dried wedges)
 CLength <- c()
 
-# select1 <- c(50:51) # progress in batches
-
-filelist_GW <- filelist_GW[-c(142)]
-
-pdf(file=paste("D:/wedges_backup_change_resolution/wedges/automated_process.pdf", sep = ""), width = 7, height = 9, paper = "a4" ) # saving plots in pdf file
 
 
-for (i in selection) { # select1  
+for (i in 1:length(filelist_GW)) {
   
   if (filelist_GW[i] %in% filelist_DW) {
     
     ### Reading GW image
-    pic0 <- readImage( paste(pathName_GW,filelist_GW[i],sep="") ) #  "F7A_s1_mod.jpg"
+    pic0 <- readImage( paste(pathName_GW,filelist_GW[i],sep="") ) #  
     pic01 <- resize(pic0,2040)
     
     ####################################
@@ -234,7 +118,7 @@ for (i in selection) { # select1
     GW_Data <- rbind.data.frame(GW_Data,wedge_full)
     
     
-    ### Corner detection and vertical alignment
+    ### Corner detection
     x = nmask
     contours2 = ocontour(bwlabel(x))
     local_curv01 = localCurvature(x=contours2[[1]], h=50) ### 
@@ -256,38 +140,6 @@ for (i in selection) { # select1
     valleys1 <- findPeaks(-local_curv01$curvature, m=500)
     corners1 <-  local_curv01$contour[valleys1,]
 
-    
-    ##### Display
-    # pic0_GS1_area <- resize(pic0,2040)
-    # nmask_GS1_area <- resize(nmask,2040)
-    
-    ### selecting pith (click wedge pith position on the plot)
-    # display(pic01, all=TRUE, method="raster" ) #
-    # text(x = 600, y = 150,
-    #      label = paste("i=",i," ",filelist_GW[i],"",sep=""),
-    #                    adj = c(0,1), col = "white", cex = 2.6)
-    # 
-    # p <- locator(4, type = "l", pch = 3, col = "red")
-    # p <- cbind.data.frame(pith_x=p$x[1],
-    #                       pith_y=p$y[1],
-    #                       mid_x=p$x[2],
-    #                       mid_y=p$y[2],
-    #                       left_x=p$x[3],
-    #                       left_y=p$y[3],
-    #                       right_x=p$x[4],
-    #                       right_y=p$y[4]
-    # )
-    # p$treeID <- paste(filelist_GW[i],sep = "")
-    # p$type <- "Green"
-    # DW_Data3 <- rbind.data.frame(DW_Data3,p)
-    
-    ############### Automatic detection of shrinkage points##############################
-    xxx <- imageData(nmask)
-    xxx1 <- as.data.frame(which(nmask==1, arr.ind=TRUE))
-    # left <- c(  min(xxx1$row), min( xxx1[which(xxx1$row==min(xxx1$row)),]$col )  ) #Left
-    # right <- c(  max(xxx1$row), min( xxx1[which(xxx1$row==max(xxx1$row)),]$col )  ) #Right
-    # pith <- c( ( xxx1[which(xxx1$col==max(xxx1$col)),]$row )[as.integer( (  length(xxx1[which(xxx1$col==max(xxx1$col)),]$row)/2  ))] , max(xxx1$col)   ) #Pith
-    
     left <- corners1[1,]
     pith <- corners1[2,]
     right <- corners1[3,]
@@ -308,43 +160,9 @@ for (i in selection) { # select1
     p$type <- "Green"
     DW_Data3 <- rbind.data.frame(DW_Data3,p)
     
+    ####################################################################################    
+    ##### Automatic calculation of wedge hat area ######################################
     
-    # ### Corner detection method 1
-    # display(pic01, all=TRUE, method="raster" )
-    # points(pith[1], pith[2] , col = "red", pch = 13, cex = 1.5)
-    # points(left[1], left[2] , col = "red", pch = 13, cex = 1.5)
-    # points(right[1], right[2] , col = "red", pch = 13, cex = 1.5)
-    # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
-    # text(x = 300, y = 50,
-    #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # text(x = 300, y = 150,
-    #      label = paste(filelist_GW[i]," Green",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # 
-    # ### Corner detection method 2
-    # display(pic01, all=TRUE, method="raster" )
-    # points(corners1[2,1], corners1[2,2] , col = "red", pch = 13, cex = 1.5)
-    # points(corners1[1,1], corners1[1,2] , col = "red", pch = 13, cex = 1.5)
-    # points(corners1[3,1], corners1[3,2] , col = "red", pch = 13, cex = 1.5)
-    # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
-    # text(x = 300, y = 50,
-    #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # text(x = 300, y = 150,
-    #      label = paste(filelist_GW[i]," Green",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    
-    
-    
-    
-    
-    ####################################################################################
-    
-    
-    
-    ##### Automatic calculation of wedge hat area #######################################
-    #display(nmask)
     x = nmask
     contours1 = as.data.frame(ocontour(x)[[1]])
     x1=contours1[min(which(contours1$V1==(p$left_x))),]$V1
@@ -360,24 +178,14 @@ for (i in selection) { # select1
                                   contours1[max(which(contours1$V1==(p$right_x))):nrow(contours1) ,])
     pos2 = array(0, dim(x))
     pos2[as.matrix(contours2)]  = 1
-    pos2 <- fillHull(pos2)
-    
-    # display(colorLabels(nmask+pos2), all=TRUE, method = "raster")
-    # text(x = 300, y = 50,
-    #      label = paste("Automatic detection of wedge hat area ",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # text(x = 300, y = 150,
-    #      label = paste(filelist_GW[i]," Green",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    
+    pos2 <- fillHull(pos2)  
     
     wedge_hat_area <- as.data.frame(computeFeatures.shape(pos2, pic01))
     wedge_hat_area$treeID <- paste(filelist_GW[i],sep = "")
     wedge_hat_area$type <- "Green"
     wedge_hat_area$type2 <- "hat"
     DW_Data4 <- rbind.data.frame(DW_Data4,wedge_hat_area)
-    
-    
+        
     greenWedgeSegmentation <- nmask+pos2
     
     # Triangle lenght segment LEFT (Left to Pith) 
@@ -463,30 +271,19 @@ for (i in selection) { # select1
                                  seg_PT,
                                  tri_area) 
     
-    # display(colorLabels(pos6 + nmask), all=TRUE)
-    
-    ####################################################################################
-    
-
-    
+ 
     ####################################################
-    ### Dried wedges - Wood interal check calculations
+    ### Dried wedges - SIDE 1
     ####################################################
     
     ### Reading DW-S1 image
     wedge_ID <- (strsplit(filelist_GW[i], "_"))[[1]][1:3]
-    
-    ### side correction
-    if ( paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1",sep = "") %in% SideCorrection$TreeID ) {
-      DW_s1 <- paste(pathName_DW,wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep = "")
-      DW_s2 <- paste(pathName_DW,wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep = "")
-    } else { 
-      DW_s1 <- paste(pathName_DW,wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep = "")
-      DW_s2 <- paste(pathName_DW,wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep = "")
-    }
-    
-    
-    pic0 <- readImage( DW_s1 ) #  "F7A_s1_mod.jpg"
+ 
+    DW_s1 <- paste(pathName_DW,wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep = "")
+    DW_s2 <- paste(pathName_DW,wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep = "")
+ 
+        
+    pic0 <- readImage( DW_s1 )
     pic01 <- resize(pic0,2040)
     pic02 <- resize(pic0,2040)
     
@@ -555,28 +352,8 @@ for (i in selection) { # select1
     }
     
     valleys1 <- findPeaks(-local_curv01$curvature, m=500)
-    corners1 <-  local_curv01$contour[valleys1,]
-    
-    
-    ### selecting pith (click wedge pith position on the plot)
-    # display(pic01, all=TRUE, method="raster") #
-    # text(x = 600, y = 150,
-    #      label = paste("i=",i," ",wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg"," Dried",sep=""),
-    #      adj = c(0,1), col = "white", cex = 2.6)
-    # 
-    # p <- locator(4, type = "l", pch = 3, col = "red")
-    # p <- cbind.data.frame(pith_x=p$x[1],
-    #                       pith_y=p$y[1],
-    #                       mid_x=p$x[2],
-    #                       mid_y=p$y[2],
-    #                       left_x=p$x[3],
-    #                       left_y=p$y[3],
-    #                       right_x=p$x[4],
-    #                       right_y=p$y[4]
-    # )
-    # p$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep = "")
-    # p$type <- "Dried"
-    # DW_Data3 <- rbind.data.frame(DW_Data3,p)
+    corners1 <-  local_curv01$contour[valleys1,]    
+ 
     
     ############### Automatic detection of shrinkage points##############################
     xxx <- imageData(nmask)
@@ -604,24 +381,7 @@ for (i in selection) { # select1
     p$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep="")
     p$type <- "Dried"
     DW_Data3 <- rbind.data.frame(DW_Data3,p)
-    
-    
-    # display(pic01, all=TRUE, method="raster" )
-    # points(pith[1], pith[2] , col = "red", pch = 13, cex = 1.5)
-    # points(left[1], left[2] , col = "red", pch = 13, cex = 1.5)
-    # points(right[1], right[2] , col = "red", pch = 13, cex = 1.5)
-    # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
-    # text(x = 300, y = 50,
-    #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # text(x = 300, y = 150,
-    #      label = paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg"," Dried",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    
-    
-    ####################################################################################
-    
-    
+        
     
     ##### Automatic calculation of wedge hat area #######################################
     #display(nmask)
@@ -652,16 +412,8 @@ for (i in selection) { # select1
     sec_area <-  as.data.frame(computeFeatures.shape(pos10, pic01))
     sec_area$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep="")
     sec_area$type <- "Dried"
-    sec_area$type2 <- "section"
-    
-    
-    # display(colorLabels(nmask+pos2), all=TRUE, method="raster")
-    # text(x = 300, y = 50,
-    #      label = paste("Automatic detection of wedge hat ",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # text(x = 300, y = 150,
-    #      label = paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg"," Dried",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
+    sec_area$type2 <- "section"    
+ 
     
     ### Wedge hat 
     wedge_hat_area <- as.data.frame(computeFeatures.shape(pos2, pic01))
@@ -692,7 +444,7 @@ for (i in selection) { # select1
     
     
     #########################################################
-    ### Depth collapse measurement
+    ### Depth - collapse measurement
     #########################################################
     mL= - ((y2-y1)/(x2-x1))^(-1)
     res2 <- c()
@@ -751,7 +503,7 @@ for (i in selection) { # select1
     
     
     #########################################################
-    ### Depth collapse measurement
+    ### Depth - collapse measurement
     #########################################################
     mL= - ((y2-y1)/(x2-x1))^(-1)
     res2 <- c()
@@ -841,7 +593,7 @@ for (i in selection) { # select1
     tri_area$type2 <- "Area"
     
     
-    ### SectionB  - Section within delimited by triangular section
+    ### SectionB  - Section delimited by triangular section
     pos11 = pos10*pos7
     secB_area <-  as.data.frame(computeFeatures.shape(pos11, pic01))
     secB_area$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep="")
@@ -869,11 +621,7 @@ for (i in selection) { # select1
                                  wedge_hat_area)
     
     
-    #display(pos6)
-    
-    
-    ####################################################################################
-    
+    #display(pos6) 
     
     ############ Automatic calculation of linear contour's lenght left and right side (dried wedges) ##############################
     left_length <- nrow(contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y) ):which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),])
@@ -883,60 +631,24 @@ for (i in selection) { # select1
     LR_edges$type <- "Dried"
     DW_Data5 <- rbind.data.frame(DW_Data5,LR_edges)
     #####################################################################################################################
-    
-    
-    
+        
     ###### Autocamtic calculation of linear local curvature ##################################################################
     contours2 = ocontour(bwlabel(x))
     local_curv01 = localCurvature(x=contours2[[1]], h=35) ### option1 h=25 , option2 h=35 <-- (looks better)
     
     ### Plotting linear curvature intensity
     lc_plotDF <- as.data.frame(local_curv01)
-    lc_plotDF2 <- as.data.frame(local_curv01)
-    
+    lc_plotDF2 <- as.data.frame(local_curv01)    
     lc_plotDF$curvature <- NA
     lc_plotDF[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))),3] <- 0
     lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))),3] <- 0
     lc_plotDF[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )+40):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))-40),3] <- lc_plotDF2[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )+40):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))-40),]$curvature 
     lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )+40):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))-40),3] <- lc_plotDF2[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )+40):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))-40),]$curvature
     lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))-10):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))+10),3] <- NA
-    
-    
-    # lc_plotDF[lc_plotDF2$curvature<=(0.003),]$curvature <- 1
-    # lc_plotDF[lc_plotDF2$curvature>(0.003),]$curvature <- 2
-    
-    
-    # P <- ggplot(lc_plotDF, aes(x=contour.1, y=contour.2, colour=curvature)) +
-    #   annotation_custom(rasterGrob(pic01, 
-    #                                width = unit(1,"npc"),
-    #                                height = unit(1,"npc")), -Inf, Inf, -Inf, Inf) +
-    #   geom_path(size=0.5) +
-    #   scale_y_reverse(expand = c(0, 0),limits = c(2640,0)) +
-    #   scale_x_continuous(expand = c(0, 0),limits = c(0,2040))+
-    #   ggtitle("") + # Local curvature 1)  LC<=0.02   2) LC>0.02
-    #   scale_colour_gradient(low = "yellow", high = "red", na.value = NA)  +
-    #   # scale_colour_gradientn(colours=rev(rainbow(3))) +
-    #   theme_dark()
-    
+       
     left_segment <- lc_plotDF[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))),]$curvature
     right_segment <- lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))),]$curvature
-    
-    # vp.BottomRight <- viewport(height=unit(.5, "npc"), width=unit(0.8, "npc"), 
-    #                            just=c("left","top"), 
-    #                            y=0.5, x=0.1)
-    # 
-    # par(mfrow=c(2,2))
-    # plot(rev(left_segment), type = "l", main="Local curvature pith-bark LEFT side") # profile from pith to bark
-    # abline(h=0.00, col="blue",lty = 3)
-    # plot(right_segment, type = "l", main="Local curvature",
-    #      cex.axis=1.5, cex.main=1.5, cex.lab=1.5,
-    #      xlab="Contour from pith (pixels)", ylab="Local curvature") # profile from pith to bark
-    # abline(h=0.00, col="blue",lty = 3)
-    # 
-    # 
-    # print(P, vp=vp.BottomRight)
-    # par(mfrow=c(1,1))
-    
+       
     left_segmentDF <- lc_plotDF2[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y) ):which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]
     right_segmentDF <- lc_plotDF2[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)):which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]
     left_segmentDF$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep="")
@@ -954,6 +666,7 @@ for (i in selection) { # select1
     }
     left_segmentDF$dist_pith <- length_Pith_to_check
     ##################################################################
+    
     
     ### Calculating distance point-to-point  ########
     length_Pith_to_check <- c()
@@ -1002,37 +715,7 @@ for (i in selection) { # select1
     thr2[resize(logo_dilate, 5100)==0] <- 0
     #display(thr2, all=TRUE)
     
-    # ##########################################################################
-    # ### Kmeans method
-    # image01 <- (1-pic_mod2)
-    # # display(image01)
-    # image01_mat <- as.vector(image01)
-    # k=7
-    # set.seed(1)
-    # KMC = kmeans(image01_mat, centers=k, iter.max=1000)
-    # str(KMC)
-    # wedgeKMC = as.numeric(KMC$cluster)
-    # hist(wedgeKMC)
-    # KMC$centers
-    # clust_sel <- c(4,2)
-    # wedgeKMC <- ifelse(wedgeKMC %in% clust_sel, 1, 0)
-    # dim(wedgeKMC) = c(nrow(image01), ncol(image01))
-    # # image(wedgeKMC, axes=FALSE, col=rainbow(k))
-    # 
-    # display(colorLabels(wedgeKMC))
-    # wedgeKMC[logo_dilate==0] <- 0
-    # ### Removing noise
-    # nmaskf2 = fillHull(opening(wedgeKMC, makeBrush(1, shape='diamond'))) ## 3
-    # dmap2 = distmap(nmaskf2)
-    # # display(dmap2, all=T)
-    # ### Detecting individual objects
-    # nmask2 = watershed(dmap2, tolerance = 1, ext=5)
-    # display(colorLabels(nmask2), all=T)
-    # pic.out1 <- paintObjects(nmask2, pic01, opac = c(1, 1), col = c("red", "red"))
-    # display(pic.out1, all=TRUE)
-    # ###########################################################################
-    
-    
+      
     ### Removing noise
     nmaskf2 = fillHull(opening(thr2, makeBrush(3, shape='diamond'))) ## 3
     dmap2 = distmap(nmaskf2)
@@ -1086,8 +769,7 @@ for (i in selection) { # select1
     # pic0_DS1_checks <- resize(pic0,2040)
     # nmask_DS1_checks <- resize(nmask3,2040)
     
-
-    
+ 
     
     ### Reading DW-S2 image
     # DW_s2 <- paste(pathName_DW,wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep = "")
@@ -1161,30 +843,6 @@ for (i in selection) { # select1
     valleys1 <- findPeaks(-local_curv01$curvature, m=500)
     corners1 <-  local_curv01$contour[valleys1,]
     
-    ##### Display
-    # pic0_DS2_area <- resize(pic0,2040)
-    # nmask_DS2_area <- resize(nmask,2040)
-    
-    
-    ### selecting pith (click wedge pith position on the plot)
-    # display(pic01, all=TRUE, method="raster") #
-    # text(x = 600, y = 150,
-    #      label = paste("i=",i," ",wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg"," Dried",sep=""),
-    #      adj = c(0,1), col = "white", cex = 2.6)
-    # 
-    # p <- locator(4, type = "l", pch = 3, col = "red")
-    # p <- cbind.data.frame(pith_x=p$x[1],
-    #                       pith_y=p$y[1],
-    #                       mid_x=p$x[2],
-    #                       mid_y=p$y[2],
-    #                       left_x=p$x[3],
-    #                       left_y=p$y[3],
-    #                       right_x=p$x[4],
-    #                       right_y=p$y[4]
-    # )
-    # p$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep = "")
-    # p$type <- "Dried"
-    # DW_Data3 <- rbind.data.frame(DW_Data3,p)
     
     
     ############### Automatic detection of shrinkage points##############################
@@ -1212,21 +870,7 @@ for (i in selection) { # select1
     )
     p$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep="")
     p$type <- "Dried"
-    DW_Data3 <- rbind.data.frame(DW_Data3,p)
-    
-    # display(pic01, all=TRUE, method="raster" )
-    # points(pith[1], pith[2] , col = "red", pch = 13, cex = 1.5)
-    # points(left[1], left[2] , col = "red", pch = 13, cex = 1.5)
-    # points(right[1], right[2] , col = "red", pch = 13, cex = 1.5)
-    # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
-    # text(x = 300, y = 50,
-    #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # text(x = 300, y = 150,
-    #      label = paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg"," Dried",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    
-    
+    DW_Data3 <- rbind.data.frame(DW_Data3,p)    
     
     ####################################################################################
     
@@ -1250,15 +894,7 @@ for (i in selection) { # select1
     pos2 = array(0, dim(x))
     pos2[as.matrix(contours2)]  = 1
     pos2 <- fillHull(pos2)
-    
-    # display(colorLabels(nmask+pos2), all=TRUE, method="raster")
-    # text(x = 300, y = 50,
-    #      label = paste("Automatic detection of wedge hat ",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    # text(x = 300, y = 150,
-    #      label = paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg"," Dried",sep=""),
-    #      adj = c(0,1), col = "white", cex = 1.0)
-    
+       
     wedge_hat_area <- as.data.frame(computeFeatures.shape(pos2, pic01))
     wedge_hat_area$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep="")
     wedge_hat_area$type <- "Dried"
@@ -1356,8 +992,7 @@ for (i in selection) { # select1
     #display(pos6)
     
     ####################################################################################
-    
-    
+      
     
     ############ Automatic calculation of linear lenght left and right side (dried wedges) ##############################
     left_length <- nrow(contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y) ):which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),])
@@ -1367,8 +1002,7 @@ for (i in selection) { # select1
     LR_edges$type <- "Dried"
     DW_Data5 <- rbind.data.frame(DW_Data5,LR_edges)
     #####################################################################################################################
-    
-    
+       
     
     ###### Autocamtic calculation of linear local curvature ##################################################################
     contours2 = ocontour(bwlabel(x))
@@ -1381,29 +1015,11 @@ for (i in selection) { # select1
     lc_plotDF$curvature2 <- 0
     lc_plotDF[lc_plotDF$curvature<=0.02,]$curvature2 <- 1
     lc_plotDF[lc_plotDF$curvature>0.02,]$curvature2 <- 2
-    
-    # P <- ggplot(lc_plotDF, aes(x=contour.1, y=contour.2, colour=as.factor(curvature2))) +
-    #   geom_point() +
-    #   scale_y_reverse() +
-    #   ggtitle("Local curvature 1)  LC<=0.02   2) LC>0.02") +
-    #   theme_dark()
+      
     
     left_segment <- local_curv01$curvature[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y) ):which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y))]
     right_segment <- local_curv01$curvature[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)):which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y))]
-    
-    # vp.BottomRight <- viewport(height=unit(.5, "npc"), width=unit(0.8, "npc"), 
-    #                            just=c("left","top"), 
-    #                            y=0.5, x=0.1)
-    
-    # par(mfrow=c(2,2))
-    # plot(rev(left_segment), type = "l", main="Local curvature pith-bark LEFT side") # profile from pith to bark
-    # abline(h=0.02, col="blue",lty = 3)
-    # plot(right_segment, type = "l", main="Local curvature pith-bark RIGHT side") # profile from pith to bark
-    # abline(h=0.02, col="blue",lty = 3)
-    # 
-    # print(P, vp=vp.BottomRight)
-    # par(mfrow=c(1,1))
-    
+        
     left_segmentDF <- lc_plotDF2[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y) ):which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]
     right_segmentDF <- lc_plotDF2[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)):which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]
     left_segmentDF$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep="")
@@ -1459,37 +1075,7 @@ for (i in selection) { # select1
     thr2[resize(logo_dilate, 5100)==0] <- 0
     #display(thr2, all=TRUE)
     
-    # ##########################################################################
-    # ### Kmeans method
-    # image01 <- (1-pic_mod2)
-    # # display(image01)
-    # image01_mat <- as.vector(image01)
-    # k=7
-    # set.seed(1)
-    # KMC = kmeans(image01_mat, centers=k, iter.max=1000)
-    # str(KMC)
-    # wedgeKMC = as.numeric(KMC$cluster)
-    # hist(wedgeKMC)
-    # KMC$centers
-    # clust_sel <- c(4,2)
-    # wedgeKMC <- ifelse(wedgeKMC %in% clust_sel, 1, 0)
-    # dim(wedgeKMC) = c(nrow(image01), ncol(image01))
-    # # image(wedgeKMC, axes=FALSE, col=rainbow(k))
-    # 
-    # display(colorLabels(wedgeKMC))
-    # wedgeKMC[logo_dilate==0] <- 0
-    # ### Removing noise
-    # nmaskf2 = fillHull(opening(wedgeKMC, makeBrush(1, shape='diamond'))) ## 3
-    # dmap2 = distmap(nmaskf2)
-    # # display(dmap2, all=T)
-    # ### Detecting individual objects
-    # nmask2 = watershed(dmap2, tolerance = 1, ext=5)
-    # display(colorLabels(nmask2), all=T)
-    # pic.out1 <- paintObjects(nmask2, pic01, opac = c(1, 1), col = c("red", "red"))
-    # display(pic.out1, all=TRUE)
-    # ###########################################################################
-    
-    
+     
     ### Removing noise
     nmaskf2 = fillHull(opening(thr2, makeBrush(3, shape='diamond'))) ## 3
     dmap2 = distmap(nmaskf2)
@@ -1540,11 +1126,9 @@ for (i in selection) { # select1
     
     
     
-    ##### Display
+    ##### Graphic output 
     # pic0_DS2_checks <- resize(pic0,2040)
-    # nmask_DS2_checks <- resize(nmask3,2040)
-    
-    
+    # nmask_DS2_checks <- resize(nmask3,2040)  
     
     # pic.out1 <- paintObjects(nmask_GS1_area, pic0_GS1_area, opac = c(1, 1), col = c("red", NA), thick = TRUE, closed = TRUE)
     # pic.out2 <- paintObjects(nmask_DS1_area, pic0_DS1_area, opac = c(1, 1), col = c("red", NA), thick = TRUE, closed = TRUE)
@@ -1791,388 +1375,6 @@ for (i in selection) { # select1
   
   
 }
-
-
-dev.off()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### Data Analysis ####
-GW_Data <- read.csv("GW_Data.csv", stringsAsFactors = FALSE)
-DW_Data1 <- read.csv("DW_Data1.csv", stringsAsFactors = FALSE)
-DW_Data2 <- read.csv("DW_Data2.csv", stringsAsFactors = FALSE)
-DW_Data3 <- read.csv("DW_Data3.csv", stringsAsFactors = FALSE)
-DW_Data4 <- read.csv("DW_Data4.csv", stringsAsFactors = FALSE)
-DW_Data5 <- read.csv("DW_Data5.csv", stringsAsFactors = FALSE)
-DW_Data6 <- read.csv("DW_Data6.csv", stringsAsFactors = FALSE)
-DW_Data7 <- read.csv("DW_Data7.csv", stringsAsFactors = FALSE)
-scoring <- read.csv("Scoring.csv", stringsAsFactors = FALSE)
-scoring$treeID<- paste(scoring$site2,"_",scoring$Tree,"_",scoring$wedge,"_",scoring$side,sep="")
-scoring$treeID2<- paste(scoring$site2,"_",scoring$Tree,"_",scoring$wedge,sep="")
-
-#### 1- Shrinkage 
-full_DF <- c()
-for (i in 1:nrow(GW_Data)) {
-  
-  wedge_ID <- (strsplit(GW_Data$treeID[i], "_"))[[1]][1:3]
-  
-  DW_s1 <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep = "")
-  DW_s2 <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s2.jpg",sep = "")
-  
-  GreenA1_hat <- DW_Data4[DW_Data4$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data4$type=="Green",]$s.area
-  DriedA1_hat <- DW_Data4[DW_Data4$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data4$type=="Dried",]$s.area
-  DriedA2_hat <- DW_Data4[DW_Data4$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = "") & DW_Data4$type=="Dried",]$s.area
-  
-  GreenA1 <- GW_Data[GW_Data$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = ""),]$s.area - GreenA1_hat
-  DriedA1 <- DW_Data1[DW_Data1$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = ""),]$s.area - DriedA1_hat
-  DriedA2 <- DW_Data1[DW_Data1$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = ""),]$s.area - DriedA2_hat
-  
-  GreenA1_tri <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Green"  & DW_Data6$type2=="Area",]$s.area
-  DriedA1_tri <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Area",]$s.area
-  DriedA2_tri <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Area",]$s.area
-  
-  GreenA1_tri_L <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Green"  & DW_Data6$type2=="Segment_L",]$s.area
-  GreenA1_tri_R <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Green" & DW_Data6$type2=="Segment_R",]$s.area
-  GreenA1_tri_T <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Green" & DW_Data6$type2=="Segment_T",]$s.area
-  GreenA1_tri_M <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Green" & DW_Data6$type2=="Segment_M",]$s.area
-  
-  
-  DriedA1_tri_L <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Dried"  & DW_Data6$type2=="Segment_L",]$s.area
-  DriedA1_tri_R <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Segment_R",]$s.area
-  DriedA1_tri_T <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Segment_T",]$s.area
-  DriedA1_tri_M <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Segment_M",]$s.area
-  
-  DriedA2_tri_L <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = "") & DW_Data6$type=="Dried"  & DW_Data6$type2=="Segment_L",]$s.area
-  DriedA2_tri_R <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Segment_R",]$s.area
-  DriedA2_tri_T <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Segment_T",]$s.area
-  DriedA2_tri_M <- DW_Data6[DW_Data6$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = "") & DW_Data6$type=="Dried" & DW_Data6$type2=="Segment_M",]$s.area
-  
-  
-  DriedA1_checks <- nrow(DW_Data2[DW_Data2$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = ""),])
-  DriedA1_area <- sum(DW_Data2[DW_Data2$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1.jpg",sep = ""),]$s.area)
-  DriedA2_checks <- nrow(DW_Data2[DW_Data2$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = ""),])
-  DriedA2_area <- sum(DW_Data2[DW_Data2$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s2.jpg",sep = ""),]$s.area)
-  
-  SN_s1 <- round( (GreenA1_tri-DriedA1_tri)/GreenA1_tri*100, 1)
-  SG_s1 <- round( (GreenA1-DriedA1)/GreenA1*100, 1)
-  SR_s1 <- round( ((GreenA1_tri_R-DriedA1_tri_R)/GreenA1_tri_R + (GreenA1_tri_L-DriedA1_tri_L)/GreenA1_tri_L)/2  *100, 1)
-  SR_s1M <- round( (GreenA1_tri_M-DriedA1_tri_M)/GreenA1_tri_M  *100, 1)
-  
-  ST_s1 <- round( (GreenA1_tri_T-DriedA1_tri_T)/GreenA1_tri_T*100, 1)
-  AN_s1 <- round(SR_s1/ST_s1,2)
-  CO_s1 <- round(SG_s1-SN_s1,2)
-  
-  SN_s2 <- round( (GreenA1_tri-DriedA2_tri)/GreenA1_tri*100, 1)
-  SG_s2 <- round( (GreenA1-DriedA2)/GreenA1*100, 1)
-  SR_s2 <- round( ((GreenA1_tri_R-DriedA2_tri_R)/GreenA1_tri_R + (GreenA1_tri_L-DriedA2_tri_L)/GreenA1_tri_L)/2  *100, 1)
-  SR_s2M <- round( (GreenA1_tri_M-DriedA2_tri_M)/GreenA1_tri_M  *100, 1)
-  ST_s2 <- round( (GreenA1_tri_T-DriedA2_tri_T)/GreenA1_tri_T*100, 1)
-  AN_s2 <- round(SR_s2/ST_s2,2)
-  CO_s2 <- round(SG_s2-SN_s2,2)
-  
-  score_s1 <- scoring[scoring$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1",sep = ""),]$Score_wedgeA
-  treatment <- scoring[scoring$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1",sep = ""),]$Treatment
-  site <- scoring[scoring$treeID==paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_s1",sep = ""),]$Site
-  
-  
-  Shrinkage_ALL <- cbind.data.frame(
-    # S1
-    Radial_S1=SR_s1,
-    Radial_S1M=SR_s1M,
-    Tangential_S1=ST_s1,
-    Section_Dried_S1=DriedA1,
-    Gross_S1= SG_s1,
-    Net_S1= SN_s1,
-    Collapse_S1= CO_s1,
-    Score_S1= score_s1,
-    N_check_S1=DriedA1_checks,
-    Area_check_S1=DriedA1_area,
-    size_check_S1=ifelse(DriedA1_checks>0,DriedA1_area/DriedA1_checks,0),
-    R_Area_check_S1= 100000*DriedA1_area/GreenA1,
-    # S2
-    Radial_S2=SR_s2,
-    Radial_S2M=SR_s2M,
-    Tangential_S2=ST_s2,
-    Section_Dried_S2=DriedA2,
-    Gross_S2= SG_s2,
-    Net_S2= SN_s2,
-    Collapse_S2= CO_s2,
-    N_check_S2=DriedA2_checks,
-    Area_check_S2=DriedA2_area,
-    size_check_S2= ifelse(DriedA2_checks>0,DriedA2_area/DriedA2_checks,0),
-    R_Area_check_S2= 100000*DriedA2_area/GreenA1,
-    treeID=GW_Data$treeID[i],
-    treatment=treatment,
-    site=site
-  )
-  
-  full_DF <- rbind.data.frame(full_DF,Shrinkage_ALL)
-  
-}
-
-
-### Non biological meaning (deletion)
-full_DF[is.na(full_DF)] <- 0  
-full_DF[full_DF<0] <- 0
-full_DF$Score_S1 <- ifelse(full_DF$Score_S1 %in% c(2,3), 2,
-                           ifelse(full_DF$Score_S1 %in% c(4,5,6), 3, 1))
-full_DF$Score_S1 <- as.factor(full_DF$Score_S1)
-
-### Correlation matrix Shrinkage  How different is S1 from S2
-ggpairs(full_DF[,c(
-  "Gross_S1",
-  "Gross_S2",
-  "Net_S1",
-  "Net_S2",
-  "Radial_S1",
-  "Radial_S2",
-  "Radial_S1M",
-  "Radial_S2M",
-  "Tangential_S1",
-  "Tangential_S2",
-  "Collapse_S1",
-  "Collapse_S2"
-)])
-### Intertrait correlations S1
-ggpairs(full_DF[,c(
-  "Gross_S1",
-  "Net_S1",
-  "Radial_S1",
-  "Radial_S1M",
-  "Tangential_S1",
-  "Collapse_S1",
-  "treatment",
-  "site"
-  
-)])
-
-### Correlation matrix Checking How different is S1 from S2
-ggpairs(full_DF[,c(
-  "N_check_S1",
-  "N_check_S2",
-  "Area_check_S1",
-  "Area_check_S2",
-  "R_Area_check_S1",
-  "R_Area_check_S2",
-  "size_check_S1",
-  "size_check_S2"
-)])
-
-
-### Intertrait correlations S1
-ggpairs(full_DF[,c(
-  "N_check_S1",
-  "Area_check_S1",
-  # "R_Area_check_S1",
-  # "size_check_S1",
-  # "Gross_S1",
-  # "Tangential_S1",
-  "Collapse_S1",
-  # "Radial_S1",
-  "Score_S1"
-  #"treatment"
-  #"site"
-  
-)])
-
-
-
-ggpairs(full_DF[,c(8,9,10,11,7)])
-ggpairs(full_DF[,c(5,4,1,2,3,6,7)])
-
-ggpairs(full_DF[,c(2:15)])
-
-
-
-
-## 1. Fit extended forest model - Regression
-
-data <- full_DF[full_DF$Score_S1 %in% c(1,2,3,4,5,6),]
-data$Score_S1 <- as.numeric(data$Score_S1)
-
-forest_var<-colnames(data[c("N_check_S1", 
-                            "Area_check_S1",    
-                            "size_check_S1",   
-                            "R_Area_check_S1"
-)])
-
-form1 <- formula(paste0("Score_S1 ~ ", paste(forest_var, collapse = " + ")))
-
-set.seed(1807)
-CHECKS_eRF_1 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 1000, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-
-### Model summary
-print(CHECKS_eRF_1)
-
-## 2. Plot the variable importance 
-extendedForest::varImpPlot(CHECKS_eRF_1, type = 1,
-                           main = paste0("Score ~ (R2 = ", round(CHECKS_eRF_1$rsq[CHECKS_eRF_1$ntree], 3) * 100, " %)" )
-)
-
-
-
-
-
-
-
-## 3. Plot the partial dependancy plot 
-par(mfrow = c(2,2))
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "N_check_S1", "1", main = "Partial Dependency Plot - Score")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "size_check_S1", "1", main = "Partial Dependency Plot - Score")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "Area_check_S1", "1", main = "Partial Dependency Plot - Score")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "R_Area_check_S1", "1", main = "Partial Dependency Plot - Score")
-
-
-
-
-
-## 1. Fit extended forest model - Classification
-
-data <- full_DF[full_DF$Score_S1 %in% c(1,2,3,4,5,6),] ## Remove score 1 ??
-data$Score_S1 <- as.factor(data$Score_S1)
-
-forest_var<-colnames(data[c("N_check_S1", 
-                            "Area_check_S1",    
-                            "size_check_S1",   
-                            "R_Area_check_S1"
-)])
-
-form1 <- formula(paste0("Score_S1 ~ ", paste(forest_var, collapse = " + ")))
-
-
-set.seed(1807)
-CHECKS_eRF_1 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             #maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 500, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-
-### Model summary
-print(CHECKS_eRF_1)
-
-## 2. Plot the variable importance 
-par(mfrow = c(1,1))
-extendedForest::varImpPlot(CHECKS_eRF_1, type = 1,
-                           main = paste0("Importance variable Score 1-6")
-)
-
-
-## 3. Plot the partial dependancy plot 
-par(mfrow = c(6,1))
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "Area_check_S1", "1", main = "Partial dependence plot - Score=1")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "Area_check_S1", "2", main = "Partial dependence plot - Score=2")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "Area_check_S1", "3", main = "Partial dependence plot - Score=3")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "Area_check_S1", "4", main = "Partial dependence plot - Score=4")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "Area_check_S1", "5", main = "Partial dependence plot - Score=5")
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "Area_check_S1", "6", main = "Partial dependence plot - Score=6")
-
-
-
-
-#################################################################################
-## 1. Fit extended forest model - Classification as binary variable per class
-
-data <- full_DF[full_DF$Score_S1 %in% c(1,2,3,4,5,6),] ## Remove score 1 ??
-data$Score_S1 <- as.factor(data$Score_S1)
-data$Score1 <- as.factor(ifelse(data$Score_S1==1,1,2)) #
-data$Score2 <- as.factor(ifelse(data$Score_S1==2,1,2)) #
-data$Score3 <- as.factor(ifelse(data$Score_S1==3,1,2)) #
-data$Score4 <- as.factor(ifelse(data$Score_S1==4,1,2)) #
-data$Score5 <- as.factor(ifelse(data$Score_S1==5,1,2)) #
-data$Score6 <- as.factor(ifelse(data$Score_S1==6,1,2)) #
-
-forest_var<-colnames(data[c("N_check_S1", 
-                            "Area_check_S1",    
-                            "size_check_S1",   
-                            "R_Area_check_S1"
-)])
-
-set.seed(1807)
-form1 <- formula(paste0("Score1 ~ ", paste(forest_var, collapse = " + ")))
-CHECKS_eRF_1 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 500, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-form1 <- formula(paste0("Score2 ~ ", paste(forest_var, collapse = " + ")))
-CHECKS_eRF_2 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 500, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-form1 <- formula(paste0("Score3 ~ ", paste(forest_var, collapse = " + ")))
-CHECKS_eRF_3 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 500, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-form1 <- formula(paste0("Score4 ~ ", paste(forest_var, collapse = " + ")))
-CHECKS_eRF_4 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 500, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-form1 <- formula(paste0("Score5 ~ ", paste(forest_var, collapse = " + ")))
-CHECKS_eRF_5 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 500, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-form1 <- formula(paste0("Score6 ~ ", paste(forest_var, collapse = " + ")))
-CHECKS_eRF_6 <- extendedForest::randomForest(form1, data = data,
-                                             na.action=na.omit,
-                                             maxLevel = floor(log2(nrow(data) * 0.368/2)),
-                                             ntree = 500, corr.threshold = 0.5, importance = T,
-                                             keep.inbag = T)
-
-
-### Model summary
-print(CHECKS_eRF_1)
-print(CHECKS_eRF_2)
-print(CHECKS_eRF_3)
-print(CHECKS_eRF_4)
-print(CHECKS_eRF_5)
-print(CHECKS_eRF_6)
-
-## 2. Plot the variable importance 
-par(mfrow = c(1,1))
-extendedForest::varImpPlot(CHECKS_eRF_1, type = 1, "1"
-                           main = paste0("Importance variable Score 1-6")
-)
-
-
-
-## 3. Plot the partial dependancy plot 
-par(mfrow = c(6,1))
-extendedForest::partialPlot(CHECKS_eRF_1, full_DF, x.var = "N_check_S1", "1", main = "Partial dependence plot - Score=1")
-extendedForest::partialPlot(CHECKS_eRF_2, full_DF, x.var = "N_check_S1", "1", main = "Partial dependence plot - Score=2")
-extendedForest::partialPlot(CHECKS_eRF_3, full_DF, x.var = "N_check_S1", "1", main = "Partial dependence plot - Score=3")
-extendedForest::partialPlot(CHECKS_eRF_4, full_DF, x.var = "N_check_S1", "1", main = "Partial dependence plot - Score=4")
-extendedForest::partialPlot(CHECKS_eRF_5, full_DF, x.var = "N_check_S1", "1", main = "Partial dependence plot - Score=5")
-extendedForest::partialPlot(CHECKS_eRF_6, full_DF, x.var = "N_check_S1", "1", main = "Partial dependence plot - Score=6")
-
-
 
 
 
