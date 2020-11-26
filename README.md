@@ -1,2 +1,2 @@
 # WWEdge
-R script for wood checks and shrinkage quantification from wood wedges
+R-script for check and shrinkage quantification using disc-derived wedges
