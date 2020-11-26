@@ -1,2 +1,2 @@
 # WWEdge
-R-script for check and shrinkage quantification using disc-derived wedges
+R-script for checking and shrinkage quantification using disc-derived wedges
