@@ -7,10 +7,10 @@ library(fs)
 
 server <-  function(input, output, session) {
 
-  unlink("Green/*.jpg")
-  unlink("Dried/*.jpg")
-  dir.create("Green")
-  dir.create("Dried")
+  # unlink("Green/*.jpg")
+  # unlink("Dried/*.jpg")
+  # dir.create("Green")
+  # dir.create("Dried")
   
   observeEvent(input$myFileG, {
     inFile <- input$myFileG
@@ -32,7 +32,7 @@ server <-  function(input, output, session) {
                  roots = volumes,
                  session = session,
                  restrictions = system.file(package = "base"),
-                 allowDirCreate = FALSE,
+                 allowDirCreate = TRUE,
                  defaultRoot = "wd",
                  defaultPath=''
                  )
@@ -41,7 +41,7 @@ server <-  function(input, output, session) {
                  roots = volumes,
                  session = session,
                  restrictions = system.file(package = "base"),
-                 allowDirCreate = FALSE,
+                 allowDirCreate = TRUE,
                  defaultRoot = "wd",
                  defaultPath=''
                  

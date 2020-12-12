@@ -1,0 +1,1047 @@
+---
+title: "Dynamic report"
+output: html_document
+
+
+params:
+  n: NA
+  path1: NA
+  pathG: NA
+  pathD: NA
+---
+
+
+``` {r, echo='FALSE' }
+
+
+# The `params` object is available in the document.
+# params$n
+# params$path1
+# 
+# pathIm <- as.character(params$path1)
+# image1 <- readImage(paste(pathIm,"/uqportal.jpg",sep = ""))
+# display(image1, method = "raster")
+
+
+
+
+### Internal Checking area calculations ######
+### Author: Manuel Rocha
+##############################################
+
+library("EBImage")
+library("stringr")
+library("AFM")
+library("dplyr")
+library("ggplot2")
+library("knitr")
+###################################################################
+### Step 1 : Total Area and checks area measurement of dried wedges
+###################################################################
+
+
+
+### Set working directory DESK HARD DISK
+pathName_GW <- as.character(params$pathG)
+pathName_DW <- as.character(params$pathD)
+
+filelist_GW <- list.files(path = pathName_GW , pattern = ".jpg")
+filelist_DW <- list.files(path = pathName_DW , pattern = ".jpg")
+
+GW_Data <- c() # Area
+DW_Data1 <- c() # Area
+DW_Data2 <- c() # Checks
+DW_Data3 <- c() # Radial and Tangential shrinkage
+DW_Data4 <- c() # wedge hat area
+DW_Data5 <- c() # lengths of L-side , R-side  edges (using dried weges) 
+DW_Data6 <- c() # wedge triangle (green and dried)
+DW_Data7 <- c() # Local curvature profiles (L-side and R-side using dried wedges)
+CLength <- c()
+counterxx <- c(0)
+
+
+for (i in 1:length(filelist_GW)) {
+
+  if (filelist_GW[i] %in% filelist_DW) {
+
+    ### Reading GW image
+    pic0 <- resize(readImage( paste(pathName_GW,"/",filelist_DW[i],sep="") ), 2040)
+    pic01 <- pic0
+
+    ####################################
+    ####  Green wedge area calculation
+    ####################################
+
+    ### keeping original picture
+    pic <- gblur(resize(pic0[,,1],2040), sigma = 5)
+
+    ### Changing to grayscale
+    colorMode(pic) <- Grayscale
+    #display(pic, method = "raster")
+
+    #### Pic preparation
+    pic_mod <- pic
+    pic_mod <- pic_mod*1.5
+    #display(pic_mod)
+
+    ### Thresholding a standard photo (black background)
+    thr3 <- thresh(pic_mod, w=1019, h=5, offset=0.15)
+    #display(thr3, all=T)
+
+    ### Filling holes and removing small artifacts
+    nmaskf = fillHull(dilate(thr3, makeBrush(3, shape='disc'))) ## 15 does not show checks
+    dmap = distmap(nmaskf)
+    #display(dmap, all=T, method="raster")
+
+    ### Detecting independent objects by neighbours distance
+    nmask = watershed(dmap, tolerance = 5, ext=1)
+    # display( combine(colorLabels(getFrame(nmask, 1)),
+    #                  toRGB(getFrame(pic0, 1))), all=TRUE )
+
+    ### Computing objects features (Area, perimeter and location xy)
+    area_wedge <- as.data.frame(computeFeatures.shape(nmask, pic01) )
+    filter_obj <- area_wedge[which(area_wedge$s.area<=20000),]
+    nmask[nmask %in% as.numeric(rownames(filter_obj))] <- 0
+    area_wedge <- as.data.frame(computeFeatures.shape(nmask, pic01))
+    xy_wedge <- as.data.frame(computeFeatures.moment(nmask, pic01))
+    wedge_full <- cbind.data.frame(area_wedge,xy_wedge)
+    wedge_full$treeID <- paste(filelist_GW[i],sep = "")
+    GW_Data <- rbind.data.frame(GW_Data,wedge_full)
+
+    ### Corner detection and vertical alignment
+    # x = nmask
+    # contours2 = ocontour(bwlabel(x))
+    # local_curv01 = localCurvature(x=contours2[[1]], h=20) ###
+    # plot(c(local_curv01$curvature))
+    # valleys1 <- findPeaks(-local_curv01$curvature, m=500)
+    # corners1 <-  local_curv01$contour[valleys1,]
+
+    #### Display
+    pic0_GS1_area <- resize(pic0,2040)
+    nmask_GS1_area <- resize(nmask,2040)
+
+    ### selecting pith (click wedge pith position on the plot)
+    # display(pic01, all=TRUE, method="raster" ) #
+    # text(x = 600, y = 150,
+    #      label = paste("i=",i," ",filelist_GW[i],"",sep=""),
+    #                    adj = c(0,1), col = "white", cex = 2.6)
+    #
+    # p <- locator(4, type = "l", pch = 3, col = "red")
+    # p <- cbind.data.frame(pith_x=p$x[1],
+    #                       pith_y=p$y[1],
+    #                       mid_x=p$x[2],
+    #                       mid_y=p$y[2],
+    #                       left_x=p$x[3],
+    #                       left_y=p$y[3],
+    #                       right_x=p$x[4],
+    #                       right_y=p$y[4]
+    # )
+    # p$treeID <- paste(filelist_GW[i],sep = "")
+    # p$type <- "Green"
+    # DW_Data3 <- rbind.data.frame(DW_Data3,p)
+
+    ############### Automatic detection of shrinkage points##############################
+    xxx <- imageData(nmask)
+    xxx1 <- as.data.frame(which(nmask==1, arr.ind=TRUE))
+    left <- c(  min(xxx1$row), min( xxx1[which(xxx1$row==min(xxx1$row)),]$col )  ) -1 #Left
+    right <- c(  max(xxx1$row), min( xxx1[which(xxx1$row==max(xxx1$row)),]$col )  ) -1 #Right
+    pith <- c( ( xxx1[which(xxx1$col==max(xxx1$col)),]$row )[as.integer( (  length(xxx1[which(xxx1$col==max(xxx1$col)),]$row)/2  ))] , max(xxx1$col)   ) -1 #Pith
+
+    # left <- corners1[1,]
+    # pith <- corners1[2,]
+    # right <- corners1[3,]
+
+    mid_x <- as.integer(sqrt((left[1]-right[1])^2 + (left[2]-right[2])^2)/2+left[1])
+    mid_y <- min(which(xxx[mid_x,]==1)) ## mid point located at the top of the wedges
+    mid <- c(mid_x, mid_y)
+    p <- cbind.data.frame(pith_x=as.integer(pith[1]),
+                          pith_y=as.integer(pith[2]),
+                          mid_x=as.integer(mid[1]),
+                          mid_y=as.integer(mid[2]),
+                          left_x=as.integer(left[1]),
+                          left_y=as.integer(left[2]),
+                          right_x=as.integer(right[1]),
+                          right_y=as.integer(right[2])
+    )
+    p$treeID <- paste(filelist_GW[i],sep = "")
+    p$type <- "Green"
+    DW_Data3 <- rbind.data.frame(DW_Data3,p)
+
+
+    ### Corner detection method 1
+    # display(pic01, all=TRUE, method="raster" )
+    # points(pith[1], pith[2] , col = "red", pch = 13, cex = 1.5)
+    # points(left[1], left[2] , col = "red", pch = 13, cex = 1.5)
+    # points(right[1], right[2] , col = "red", pch = 13, cex = 1.5)
+    # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
+    # text(x = 300, y = 50,
+    #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
+    #      adj = c(0,1), col = "white", cex = 1.0)
+    # text(x = 300, y = 150,
+    #      label = paste(filelist_GW[i]," Green",sep=""),
+    #      adj = c(0,1), col = "white", cex = 1.0)
+    #
+    # Corner detection method 2
+    # display(pic01, all=TRUE, method="raster" )
+    # points(corners1[2,1], corners1[2,2] , col = "red", pch = 13, cex = 1.5)
+    # points(corners1[1,1], corners1[1,2] , col = "red", pch = 13, cex = 1.5)
+    # points(corners1[3,1], corners1[3,2] , col = "red", pch = 13, cex = 1.5)
+    # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
+    # text(x = 300, y = 50,
+    #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
+    #      adj = c(0,1), col = "white", cex = 1.0)
+    # text(x = 300, y = 150,
+    #      label = paste(filelist_GW[i]," Green",sep=""),
+    #      adj = c(0,1), col = "white", cex = 1.0)
+
+
+
+    ####################################################################################
+
+
+
+    ##### Automatic calculation of wedge hat area #######################################
+    #display(nmask)
+    x = nmask
+    contours1 = as.data.frame(ocontour(x)[[1]])
+    x1=contours1[min(which(contours1$V1==(p$left_x))),]$V1
+    y1=contours1[min(which(contours1$V1==(p$left_x))),]$V2
+    x2=contours1[max(which(contours1$V1==(p$right_x))) ,]$V1
+    y2=contours1[max(which(contours1$V1==(p$right_x))) ,]$V2
+    m=(y2-y1)/(x2-x1)
+    x_range <- (x1+1):(x2-1)
+    y_output <- as.integer(m*x_range - m*x1 + y1)
+    line_AB <- cbind.data.frame(V1=x_range,V2=y_output)
+    contours2 <- rbind.data.frame(contours1[1:min(which(contours1$V1==(p$left_x))) ,],
+                                  line_AB,
+                                  contours1[max(which(contours1$V1==(p$right_x))):nrow(contours1) ,])
+    pos2 = array(0, dim(x))
+    pos2[as.matrix(contours2)]  = 1
+    pos2 <- fillHull(pos2)
+
+    # display(colorLabels(nmask+pos2), all=TRUE, method = "raster")
+    # text(x = 300, y = 50,
+    #      label = paste("Automatic detection of wedge hat area ",sep=""),
+    #      adj = c(0,1), col = "white", cex = 1.0)
+    # text(x = 300, y = 150,
+    #      label = paste(filelist_GW[i]," Green",sep=""),
+    #      adj = c(0,1), col = "white", cex = 1.0)
+
+
+    wedge_hat_area <- as.data.frame(computeFeatures.shape(pos2, pic01))
+    wedge_hat_area$treeID <- paste(filelist_GW[i],sep = "")
+    wedge_hat_area$type <- "Green"
+    wedge_hat_area$type2 <- "hat"
+    DW_Data4 <- rbind.data.frame(DW_Data4,wedge_hat_area)
+
+
+    greenWedgeSegmentation <- nmask+pos2
+
+    # Triangle lenght segment LEFT (Left to Pith)
+    x1=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V1
+    y1=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V2
+    x2=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V1
+    y2=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V2
+    line_AB1 <- getBresenham2DSegment(x1,y1,x2,y2)
+    pos3 = array(0, dim(x))
+    pos3[as.matrix(line_AB1)]  = 1
+    seg_LEFT <- as.data.frame(computeFeatures.shape(pos3, pic01))
+    seg_LEFT$treeID <- paste(filelist_GW[i],sep = "")
+    seg_LEFT$type <- "Green"
+    seg_LEFT$type2 <- "Segment_L"
+
+    # Triangle lenght segment RIGHT (Pith to Right)
+    x1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V1
+    y1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V2
+    x2=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V1
+    y2=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V2
+    line_AB2 <- getBresenham2DSegment(x1,y1,x2,y2)
+    pos4 = array(0, dim(x))
+    pos4[as.matrix(line_AB2)]  = 1
+    seg_RIGHT <- as.data.frame(computeFeatures.shape(pos4, pic01))
+    seg_RIGHT$treeID <- paste(filelist_GW[i],sep = "")
+    seg_RIGHT$type <- "Green"
+    seg_RIGHT$type2 <- "Segment_R"
+
+    # Triangle lenght segment TOP (Right to Left)
+    x1=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V1
+    y1=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V2
+    x2=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V1
+    y2=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V2
+    line_AB3 <- getBresenham2DSegment(x1,y1,x2,y2)
+    pos5 = array(0, dim(x))
+    pos5[as.matrix(line_AB3)]  = 1
+    seg_TOP <- as.data.frame(computeFeatures.shape(pos5, pic01))
+    seg_TOP$treeID <- paste(filelist_GW[i],sep = "")
+    seg_TOP$type <- "Green"
+    seg_TOP$type2 <- "Segment_T"
+
+    # Triangle lenght segment MID (pith to middle of top segment - within the triangular section)
+    mid_pos <- as.integer(nrow(line_AB3)/2)
+    x1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V1
+    y1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V2
+    x2 <- line_AB3[mid_pos]$x
+    y2 <- line_AB3[mid_pos]$y
+    line_AB4 <- getBresenham2DSegment(x1,y1,x2,y2)
+    pos6 = array(0, dim(x))
+    pos6[as.matrix(line_AB4)]  = 1
+    seg_MID <- as.data.frame(computeFeatures.shape(pos6, pic01))
+    seg_MID$treeID <- paste(filelist_GW[i],sep = "")
+    seg_MID$type <- "Green"
+    seg_MID$type2 <- "Segment_M"
+
+    ### Triangle Area
+    contours3 <- rbind.data.frame(line_AB1,
+                                  line_AB2,
+                                  line_AB3
+    )
+    pos7 = array(0, dim(x))
+    pos7[as.matrix(contours3)]  = 1
+    pos7 <- fillHull(pos7)
+    tri_area <-  as.data.frame(computeFeatures.shape(pos7, pic01))
+    tri_area$treeID <- paste(filelist_GW[i],sep = "")
+    tri_area$type <- "Green"
+    tri_area$type2 <- "Area"
+
+    ### Pith to top mid point
+    # seg_Pith_to_Top <- getBresenham2DSegment(pith[1],pith[2],mid[1],mid[2])
+    # pos7 = array(0, dim(x))
+    # pos7[as.matrix(seg_Pith_to_Top)]  = 1
+    # seg_PT <- as.data.frame(computeFeatures.shape(pos7, pic01))
+    # seg_PT$treeID <- paste(filelist_GW[i],sep = "")
+    # seg_PT$type <- "Green"
+    # seg_PT$type2 <- "seg_Pith_to_Top"
+
+    DW_Data6 <- rbind.data.frame(DW_Data6,
+                                 seg_LEFT,
+                                 seg_RIGHT,
+                                 seg_TOP,
+                                 seg_MID,
+                                 #seg_PT,
+                                 tri_area)
+
+    # display(colorLabels(pos6 + nmask), all=TRUE)
+
+    ####################################################################################
+
+    # print("Green wedge OK")
+
+    ####################################################
+    ### Dried wedges - Wood interal check calculations
+    ####################################################
+
+    ### Reading DW-S1 image
+
+    DW_s1 <- paste(pathName_DW,"/",filelist_GW[i],sep = "")
+
+    pic0 <- readImage( DW_s1 ) #  "F7A_s1_mod.jpg"
+    pic01 <- resize(pic0,2040)
+    pic02 <- resize(pic0,2040)
+
+    #####################################
+    ####  Dried wedge area calculation
+    #####################################
+
+    ### keeping original picture
+    pic <- gblur( resize(pic0[,,1],2040) , sigma = 5)
+
+    ### Removing unused objects
+    #rm(list=c("pic0"))
+
+    ### Changing to grayscale
+    colorMode(pic) <- Grayscale
+    # display(pic)
+
+    #### Pic preparation
+    pic_mod <- pic
+    pic_mod <- pic_mod*1.5
+    #display(pic_mod)
+
+    ### Thresholding a standard photo (black background)
+    thr3 <- thresh(pic_mod, w=1019, h=1, offset=0.15)
+    #display(thr3, all=T)
+
+    ### Filling holes and removing small artifacts
+    nmaskf = fillHull(dilate(thr3, makeBrush(3, shape='disc'))) ## 15 does not show checks
+    dmap = distmap(nmaskf)
+    #display(dmap, all=T, method="raster")
+
+    ### Detecting independent objects by neighbours distance
+    nmask = watershed(dmap, tolerance = 1, ext=30)
+    # display( combine(colorLabels(getFrame(nmask, 1)),
+    #                  toRGB(getFrame(pic0, 1))), all=TRUE )
+
+    ### Computing objects features (Area, perimeter and location xy)
+    area_wedge <- as.data.frame(computeFeatures.shape(nmask, pic01) )
+    filter_obj <- area_wedge[which(area_wedge$s.area<=20000),]
+    nmask[nmask %in% as.numeric(rownames(filter_obj))] <- 0
+    area_wedge <- as.data.frame(computeFeatures.shape(nmask, pic01))
+    xy_wedge <- as.data.frame(computeFeatures.moment(nmask, pic01))
+
+    ### if only oone object is detected (single completed wedge)
+    if (nrow(xy_wedge)==1) {
+
+
+      wedge_full <- cbind.data.frame(area_wedge,xy_wedge)
+      wedge_full$treeID <- filelist_GW[i]
+      DW_Data1 <- rbind.data.frame(DW_Data1,wedge_full)
+
+      nmaskD1 <- nmask
+
+      ### Corner detection and vertical alignment
+      # x = nmask
+      # contours2 = ocontour(bwlabel(x))
+      # local_curv01 = localCurvature(x=contours2[[1]], h=20) ###
+      # # plot(c(local_curv01$curvature))
+      # valleys1 <- findPeaks(-local_curv01$curvature, m=500)
+      # corners1 <-  local_curv01$contour[valleys1,]
+
+
+      ### selecting pith (click wedge pith position on the plot)
+      # display(pic01, all=TRUE, method="raster") #
+      # text(x = 600, y = 150,
+      #      label = paste("i=",i," ",wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg"," Dried",sep=""),
+      #      adj = c(0,1), col = "white", cex = 2.6)
+      #
+      # p <- locator(4, type = "l", pch = 3, col = "red")
+      # p <- cbind.data.frame(pith_x=p$x[1],
+      #                       pith_y=p$y[1],
+      #                       mid_x=p$x[2],
+      #                       mid_y=p$y[2],
+      #                       left_x=p$x[3],
+      #                       left_y=p$y[3],
+      #                       right_x=p$x[4],
+      #                       right_y=p$y[4]
+      # )
+      # p$treeID <- paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg",sep = "")
+      # p$type <- "Dried"
+      # DW_Data3 <- rbind.data.frame(DW_Data3,p)
+
+      ############### Automatic detection of shrinkage points##############################
+      xxx <- imageData(nmask)
+      xxx1 <- as.data.frame(which(nmask==1, arr.ind=TRUE))
+      left <- c(  min(xxx1$row), min( xxx1[which(xxx1$row==min(xxx1$row)),]$col )  ) -1  #Left
+      right <- c(  max(xxx1$row), min( xxx1[which(xxx1$row==max(xxx1$row)),]$col )  ) -1 #Right
+      pith <- c( ( xxx1[which(xxx1$col==max(xxx1$col)),]$row )[as.integer( (  length(xxx1[which(xxx1$col==max(xxx1$col)),]$row)/2  ))] , max(xxx1$col)   ) -1 #Pith
+
+      # left <- corners1[1,]
+      # pith <- corners1[2,]
+      # right <- corners1[3,]
+
+      mid_x <- as.integer(sqrt((left[1]-right[1])^2 + (left[2]-right[2])^2)/2+left[1])
+      mid_y <- min(which(xxx[mid_x,]==1))
+      mid <- c(mid_x, mid_y)
+      p <- cbind.data.frame(pith_x=as.integer(pith[1]),
+                            pith_y=as.integer(pith[2]),
+                            mid_x=as.integer(mid[1]),
+                            mid_y=as.integer(mid[2]),
+                            left_x=as.integer(left[1]),
+                            left_y=as.integer(left[2]),
+                            right_x=as.integer(right[1]),
+                            right_y=as.integer(right[2])
+      )
+      p$treeID <- filelist_GW[i]
+      p$type <- "Dried"
+      DW_Data3 <- rbind.data.frame(DW_Data3,p)
+
+
+      # display(pic01, all=TRUE, method="raster" )
+      # points(pith[1], pith[2] , col = "red", pch = 13, cex = 1.5)
+      # points(left[1], left[2] , col = "red", pch = 13, cex = 1.5)
+      # points(right[1], right[2] , col = "red", pch = 13, cex = 1.5)
+      # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
+      # text(x = 300, y = 50,
+      #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
+      #      adj = c(0,1), col = "white", cex = 1.0)
+      # text(x = 300, y = 150,
+      #      label = paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg"," Dried",sep=""),
+      #      adj = c(0,1), col = "white", cex = 1.0)
+
+      # Corner detection method 2
+      # display(pic01, all=TRUE, method="raster" )
+      # points(corners1[2,1], corners1[2,2] , col = "red", pch = 13, cex = 1.5)
+      # points(corners1[1,1], corners1[1,2] , col = "red", pch = 13, cex = 1.5)
+      # points(corners1[3,1], corners1[3,2] , col = "red", pch = 13, cex = 1.5)
+      # points(mid[1], mid[2] , col = "red", pch = 13, cex = 1.5)
+      # text(x = 300, y = 50,
+      #      label = paste("Automatic detection of pith, mid, left and right positions ",sep=""),
+      #      adj = c(0,1), col = "white", cex = 1.0)
+      # text(x = 300, y = 150,
+      #      label = paste(filelist_GW[i]," Green",sep=""),
+      #      adj = c(0,1), col = "white", cex = 1.0)
+
+      ####################################################################################
+
+
+
+      ##### Automatic calculation of wedge hat area #######################################
+      #display(nmask)
+      x = nmask
+      contours1 = as.data.frame(ocontour(x)[[1]])
+      x1=contours1[min(which(contours1$V1==(p$left_x))),]$V1
+      y1=contours1[min(which(contours1$V1==(p$left_x))),]$V2
+      x2=contours1[max(which(contours1$V1==(p$right_x))) ,]$V1
+      y2=contours1[max(which(contours1$V1==(p$right_x))) ,]$V2
+      m=(y2-y1)/(x2-x1)
+      x_range <- (x1+1):(x2-1)
+      y_output <- as.integer(m*x_range - m*x1 + y1)
+      line_AB <- cbind.data.frame(V1=x_range,V2=y_output)
+      contours2 <- rbind.data.frame(contours1[1:min(which(contours1$V1==(p$left_x))) ,],
+                                    line_AB,
+                                    contours1[max(which(contours1$V1==(p$right_x))):nrow(contours1) ,])
+      pos2 = array(0, dim(x))
+      pos2[as.matrix(contours2)]  = 1
+      pos2 <- fillHull(pos2)
+
+      ### Section
+      contours3 <- rbind.data.frame(line_AB,
+                                    contours1[min(which(contours1$V1==(p$left_x))):min(which(contours1$V2==(p$pith_y))) ,],
+                                    contours1[min(which(contours1$V2==(p$pith_y))):max(which(contours1$V1==(p$right_x))) ,])
+      pos10 = array(0, dim(x))
+      pos10[as.matrix(contours3)]  = 1
+      pos10 <- fillHull(pos10)
+      sec_area <-  as.data.frame(computeFeatures.shape(pos10, pic01))
+      sec_area$treeID <- filelist_GW[i]
+      sec_area$type <- "Dried"
+      sec_area$type2 <- "section"
+
+
+      # display(colorLabels(nmask+pos2), all=TRUE, method="raster")
+      # text(x = 300, y = 50,
+      #      label = paste("Automatic detection of wedge hat ",sep=""),
+      #      adj = c(0,1), col = "white", cex = 1.0)
+      # text(x = 300, y = 150,
+      #      label = paste(wedge_ID[1],"_",wedge_ID[2],"_",wedge_ID[3],"_","s1.jpg"," Dried",sep=""),
+      #      adj = c(0,1), col = "white", cex = 1.0)
+
+      ### Wedge hat
+      wedge_hat_area <- as.data.frame(computeFeatures.shape(pos2, pic01))
+      wedge_hat_area$treeID <-filelist_GW[i]
+      wedge_hat_area$type <- "Dried"
+      wedge_hat_area$type2 <- "hat"
+
+      DW_Data4 <- rbind.data.frame(DW_Data4,wedge_hat_area)
+
+
+      driedWedgeSegmentation1 <- nmask+pos2
+
+
+      # Triangle lenght segment LEFT (Left to Pith)
+      x1=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V1
+      y1=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V2
+      x2=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V1
+      y2=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V2
+      line_AB1 <- getBresenham2DSegment(x1,y1,x2,y2)
+      pos3 = array(0, dim(x))
+      pos3[as.matrix(line_AB1)]  = 1
+      seg_LEFT <- as.data.frame(computeFeatures.shape(pos3, pic01))
+      seg_LEFT$treeID <- filelist_GW[i]
+      seg_LEFT$type <- "Dried"
+      seg_LEFT$type2 <- "Segment_L"
+
+
+
+      #########################################################
+      ### Depth collapse measurement - LEFT side
+      #########################################################
+      mL= - ((y2-y1)/(x2-x1))^(-1)
+      res2 <- c()
+      lline1 <- c()
+      nmask_testL <- nmaskD1*0
+      lpos1 <- c()
+
+      for (kk in seq(50,nrow(line_AB1)-50,10) )  { # seq(50,(nrow(line_AB1)-50),10)
+        x1=line_AB1[kk,]$x
+        y1=line_AB1[kk,]$y
+        iindex=0
+
+        while(iindex<200) {
+          iindex=iindex+1
+          xx2=(x1+iindex)
+          yL= mL*xx2 - mL*x1 + y1
+          yL_nmask <- nmaskD1[xx2,yL]
+          if (as.numeric(yL_nmask)==1) { break } else {
+            res1 <- cbind.data.frame(x2=xx2, y2=as.integer(yL), yL_nmask=yL_nmask, lineid=kk)
+            res2 <- rbind(res2,res1)
+          }
+        }
+
+        if ( !is.null(res2) ) {
+          line1 <- getBresenham2DSegment(x1,y1,xx2,as.integer(yL))
+          lline1 <- c(lline1, nrow(line1))
+          lpos1 <- c(lpos1,kk)
+          pos9 = array(0, dim(nmaskD1))
+          pos9[as.matrix(line1)]  = 1
+          nmask_testL <- nmask_testL + nmaskD1 + pos9
+          #seg_RIGHT <- as.data.frame(computeFeatures.shape(pos4, pic01))
+
+        } else {
+          pos9 = array(0, dim(nmaskD1))
+          nmask_testL <- nmask_testL + nmaskD1 + pos9
+
+        }
+
+      }
+
+      CLengthL <- cbind.data.frame(
+        depth = lline1,
+        lpos1 = lpos1,
+        side = rep("Left",length(lline1)),
+        TLength = rep(length(lline1),length(lline1))
+      )
+
+      if (nrow(CLengthL)>0) {
+        CLengthL$treeID <- filelist_GW[i]
+        CLength <- rbind.data.frame(CLength, CLengthL)
+      }
+
+      # display(colorLabels(nmask_test+pos3))
+
+      ###############################################################
+      ###############################################################
+
+
+      # Triangle length segment RIGHT (Pith to Right)
+      x1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V1
+      y1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V2
+      x2=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V1
+      y2=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V2
+      line_AB2 <- getBresenham2DSegment(x1,y1,x2,y2)
+      pos4 = array(0, dim(x))
+      pos4[as.matrix(line_AB2)]  = 1
+      seg_RIGHT <- as.data.frame(computeFeatures.shape(pos4, pic01))
+      seg_RIGHT$treeID <- filelist_GW[i]
+      seg_RIGHT$type <- "Dried"
+      seg_RIGHT$type2 <- "Segment_R"
+
+
+
+
+      #########################################################
+      ### Depth collapse measurement - RIGHT side
+      #########################################################
+      mL= - ((y2-y1)/(x2-x1))^(-1)
+      res2 <- c()
+      lline1 <- c()
+      nmask_testR <- nmaskD1*0
+      lpos1 <- c()
+
+      for (kk in seq(50,nrow(line_AB2)-50,10) )  { # seq(50,(nrow(line_AB1)-50),10)
+        x1=line_AB2[kk,]$x
+        y1=line_AB2[kk,]$y
+        iindex=0
+
+        while(iindex<200) {
+          iindex=iindex+1
+          xx2=(x1-iindex)
+          yL= mL*xx2 - mL*x1 + y1
+          yL_nmask <- nmaskD1[xx2,yL]
+          if (as.numeric(yL_nmask)==1) { break } else {
+            res1 <- cbind.data.frame(x2=xx2, y2=as.integer(yL), yL_nmask=yL_nmask, lineid=kk)
+            res2 <- rbind(res2,res1)
+          }
+        }
+
+        if ( !is.null(res2) ) {
+          line1 <- getBresenham2DSegment(x1,y1,xx2,as.integer(yL))
+          lline1 <- c(lline1, nrow(line1))
+          lpos1 <- c(lpos1,kk)
+          pos9 = array(0, dim(nmaskD1))
+          pos9[as.matrix(line1)]  = 1
+          nmask_testR <- nmask_testR + nmaskD1 + pos9
+          #seg_RIGHT <- as.data.frame(computeFeatures.shape(pos4, pic01))
+
+        } else {
+          pos9 = array(0, dim(nmaskD1))
+          nmask_testR <- nmask_testR + nmaskD1 + pos9
+
+        }
+
+      }
+
+      CLengthR <- cbind.data.frame(
+        depth = lline1,
+        lpos1 = lpos1,
+        side = rep("Right",length(lline1)),
+        TLength = rep(length(lline1),length(lline1))
+      )
+
+      if (nrow(CLengthR)>0) {
+        CLengthR$treeID <- filelist_GW[i]
+        CLength <- rbind.data.frame(CLength, CLengthR)
+      }
+
+      ###############################################################
+      ###############################################################
+
+      # Triangle lenght segment TOP (Right to Left)
+      x1=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V1
+      y1=contours1[which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]$V2
+      x2=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V1
+      y2=contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y)),]$V2
+      line_AB3 <- getBresenham2DSegment(x1,y1,x2,y2)
+      pos5 = array(0, dim(x))
+      pos5[as.matrix(line_AB3)]  = 1
+      seg_TOP <- as.data.frame(computeFeatures.shape(pos5, pic01))
+      seg_TOP$treeID <- filelist_GW[i]
+      seg_TOP$type <- "Dried"
+      seg_TOP$type2 <- "Segment_T"
+
+      contours3 <- rbind.data.frame(line_AB1,
+                                    line_AB2,
+                                    line_AB3)
+
+      # Triangle lenght segment MID (pith to middle of top segment)
+      mid_pos <- as.integer(nrow(line_AB3)/2)
+      x1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V1
+      y1=contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]$V2
+      x2 <- ifelse(line_AB3[mid_pos]$x==x1,line_AB3[mid_pos]$x+5, line_AB3[mid_pos]$x)
+      y2 <- line_AB3[mid_pos]$y
+      line_AB4 <- getBresenham2DSegment(x1,y1,x2,y2)
+      pos6 = array(0, dim(x))
+      pos6[as.matrix(line_AB4)]  = 1
+      seg_MID <- as.data.frame(computeFeatures.shape(pos6, pic01))
+      seg_MID$treeID <- filelist_GW[i]
+      seg_MID$type <- "Dried"
+      seg_MID$type2 <- "Segment_M"
+
+      ### Triangle Area
+      contours3 <- rbind.data.frame(line_AB1,
+                                    line_AB2,
+                                    line_AB3
+      )
+      pos7 = array(0, dim(x))
+      pos7[as.matrix(contours3)]  = 1
+      pos7 <- fillHull(pos7)
+      tri_area <-  as.data.frame(computeFeatures.shape(pos7, pic01))
+      tri_area$treeID <- filelist_GW[i]
+      tri_area$type <- "Dried"
+      tri_area$type2 <- "Area"
+
+
+      ### SectionB  - Section within delimited by triangular section
+      pos11 = pos10*pos7
+      secB_area <-  as.data.frame(computeFeatures.shape(pos11, pic01))
+      secB_area$treeID <- filelist_GW[i]
+      secB_area$type <- "Dried"
+      secB_area$type2 <- "sectionB"
+
+      ### Pith to top mid point
+      mL= ((y2-y1)/(x2-x1))
+      res2 <- c()
+      lline1 <- c()
+      nmask_testPT <- nmaskD1*0
+      iindex=0
+
+      while(iindex<2000) {
+        iindex=iindex+1
+        yL=(y1-iindex)
+        xx2 = (yL + mL*x1 - y1)/mL
+        yL_nmask <- nmaskD1[xx2,yL]
+        if (as.numeric(yL_nmask)==0) { break } else {
+          res1 <- cbind.data.frame(x2=xx2, y2=as.integer(yL), yL_nmask=yL_nmask, lineid=kk)
+          res2 <- rbind(res2,res1)
+        }
+      }
+
+      line1 <- getBresenham2DSegment(x1,y1,xx2,as.integer(yL))
+      lline1 <- c(nrow(line1))
+      lpos1 <- c(kk)
+      pos9 = array(0, dim(nmaskD1))
+      pos9[as.matrix(line1)]  = 1
+      nmask_testPT <- nmask_testPT + nmaskD1 + pos9
+
+      seg_PT <- as.data.frame(computeFeatures.shape(pos9, pic01))
+
+      # display(colorLabels(nmask_test))
+
+      seg_PT$treeID <- filelist_GW[i]
+      seg_PT$type <- "Dried"
+      seg_PT$type2 <- "seg_Pith_to_Top"
+
+      DW_Data6 <- rbind.data.frame(DW_Data6,
+                                   seg_LEFT,
+                                   seg_RIGHT,
+                                   seg_TOP,
+                                   seg_MID,
+                                   seg_PT,
+                                   tri_area,
+                                   sec_area,
+                                   secB_area,
+                                   wedge_hat_area)
+
+
+      #display(pos6)
+
+      ### Display left and right Depth (Collapse + radial + tangential)
+      # display(colorLabels(nmask_testL+pos3+nmask_testR+pos4+nmask_testPT+pos5), method = "raster")
+      # text(x = 700, y = 200, label = filelist_GW[i], adj = c(0,1), col = "white", cex = 1.6)
+
+
+      ####################################################################################
+
+
+      ############ Automatic calculation of linear contour's lenght left and right side (dried wedges) ##############################
+      left_length <- nrow(contours1[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y) ):which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),])
+      right_length <- nrow(contours1[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)):which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),])
+      LR_edges <- cbind.data.frame(left_length=left_length,right_length=right_length)
+      LR_edges$treeID <- filelist_GW[i]
+      LR_edges$type <- "Dried"
+      DW_Data5 <- rbind.data.frame(DW_Data5,LR_edges)
+      #####################################################################################################################
+
+
+
+      ###### Autocamtic calculation of linear local curvature ##################################################################
+      contours2 = ocontour(bwlabel(x))
+      local_curv01 = localCurvature(x=contours2[[1]], h=35) ### option1 h=25 , option2 h=35 <-- (looks better)
+
+      ### Plotting linear curvature intensity
+      lc_plotDF <- as.data.frame(local_curv01)
+      lc_plotDF2 <- as.data.frame(local_curv01)
+
+      lc_plotDF$curvature <- NA
+      lc_plotDF[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))),3] <- 0
+      lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))),3] <- 0
+      lc_plotDF[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )+40):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))-40),3] <- lc_plotDF2[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )+40):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))-40),]$curvature
+      lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )+40):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))-40),3] <- lc_plotDF2[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )+40):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))-40),]$curvature
+      lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))-10):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))+10),3] <- NA
+
+
+      # lc_plotDF[lc_plotDF2$curvature<=(0.003),]$curvature <- 1
+      # lc_plotDF[lc_plotDF2$curvature>(0.003),]$curvature <- 2
+
+
+      # P <- ggplot(lc_plotDF, aes(x=contour.1, y=contour.2, colour=curvature)) +
+      #   annotation_custom(rasterGrob(pic01,
+      #                                width = unit(1,"npc"),
+      #                                height = unit(1,"npc")), -Inf, Inf, -Inf, Inf) +
+      #   geom_path(size=0.5) +
+      #   scale_y_reverse(expand = c(0, 0),limits = c(2640,0)) +
+      #   scale_x_continuous(expand = c(0, 0),limits = c(0,2040))+
+      #   ggtitle("") + # Local curvature 1)  LC<=0.02   2) LC>0.02
+      #   scale_colour_gradient(low = "yellow", high = "red", na.value = NA)  +
+      #   # scale_colour_gradientn(colours=rev(rainbow(3))) +
+      #   theme_dark()
+
+      left_segment <- lc_plotDF[(which(lc_plotDF2$contour.1==(p$left_x) & lc_plotDF2$contour.2==(p$left_y) )):(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y))),]$curvature
+      right_segment <- lc_plotDF[(which(lc_plotDF2$contour.1==(p$pith_x) & lc_plotDF2$contour.2==(p$pith_y) )):(which(lc_plotDF2$contour.1==(p$right_x) & lc_plotDF2$contour.2==(p$right_y))),]$curvature
+
+      # vp.BottomRight <- viewport(height=unit(.5, "npc"), width=unit(0.8, "npc"),
+      #                            just=c("left","top"),
+      #                            y=0.5, x=0.1)
+      #
+      # par(mfrow=c(2,2))
+      # plot(rev(left_segment), type = "l", main="Local curvature pith-bark LEFT side") # profile from pith to bark
+      # abline(h=0.00, col="blue",lty = 3)
+      # plot(right_segment, type = "l", main="Local curvature",
+      #      cex.axis=1.5, cex.main=1.5, cex.lab=1.5,
+      #      xlab="Contour from pith (pixels)", ylab="Local curvature") # profile from pith to bark
+      # abline(h=0.00, col="blue",lty = 3)
+      #
+      #
+      # print(P, vp=vp.BottomRight)
+      # par(mfrow=c(1,1))
+
+      left_segmentDF <- lc_plotDF2[which(contours1$V1==(p$left_x) & contours1$V2==(p$left_y) ):which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)),]
+      right_segmentDF <- lc_plotDF2[which(contours1$V1==(p$pith_x) & contours1$V2==(p$pith_y)):which(contours1$V1==(p$right_x) & contours1$V2==(p$right_y)),]
+      left_segmentDF$treeID <- filelist_GW[i]
+      left_segmentDF$type <- "left_segment"
+      right_segmentDF$treeID <- filelist_GW[i]
+      right_segmentDF$type <- "right_segment"
+
+      ### Calculating distance point-to-point ########
+      length_Pith_to_check <- c()
+      for (j in 1:nrow(left_segmentDF)) {
+
+        pith_to_check <-  nrow(getBresenham2DSegment(pith[1],pith[2],
+                                                     as.integer(left_segmentDF[j,]$contour.1),as.integer(left_segmentDF[j,]$contour.2)))
+        length_Pith_to_check <- c(length_Pith_to_check,pith_to_check)
+      }
+      left_segmentDF$dist_pith <- length_Pith_to_check
+      ##################################################################
+
+      ### Calculating distance point-to-point  ########
+      length_Pith_to_check <- c()
+      for (j in 1:nrow(right_segmentDF)) {
+
+        pith_to_check <-  nrow(getBresenham2DSegment(pith[1],pith[2],
+                                                     as.integer(right_segmentDF[j,]$contour.1),as.integer(right_segmentDF[j,]$contour.2)))
+        length_Pith_to_check <- c(length_Pith_to_check,pith_to_check)
+      }
+      right_segmentDF$dist_pith <- length_Pith_to_check
+      ##################################################################
+
+
+      DW_Data7 <- rbind.data.frame(DW_Data7,left_segmentDF,right_segmentDF)
+
+      ##########################################################################################################################
+
+
+      ### Display
+      pic0_DS1_area <- resize(pic0,2040)
+      nmask_DS1_area <- resize(nmask,2040)
+
+
+      ########################################
+      ####  Dried wedge checking calculation
+      ########################################
+
+
+      # .rs.restartR() # restar R session
+
+
+      pic02 <- resize(pic0[,,1], 5100)
+      #pic02OR <- resize(pic0, 5100)
+      # pic02[nmask==0] <- 0
+      pic_mod2 <- pic02
+      colorMode(pic_mod2) <- Grayscale
+      #display(pic_mod2)
+
+      ### Thresholding
+      thr2 <- thresh(1-pic_mod2, w=22*2, h=5*2, offset=0.15)
+
+      ### making the mask bigger to cover the edges
+      kern = makeBrush(61, shape='disc')
+      logo_dilate = erode(nmask, kern)
+      thr2[resize(logo_dilate, 5100)==0] <- 0
+      #display(thr2, all=TRUE)
+
+
+      ### Removing noise
+      nmaskf2 = fillHull(opening(thr2, makeBrush(5, shape='diamond'))) ## 3
+      dmap2 = distmap(nmaskf2)
+      # display(dmap2, all=T)
+      nmask2 = watershed(dmap2, tolerance = 3, ext=7)
+
+      if (sum(nmask2)!=0) {
+        area_checks <- as.data.frame(computeFeatures.shape(nmask2, pic02) )
+        xy_checks <- as.data.frame(computeFeatures.moment(nmask2, pic02) )
+        filter_obj <- area_checks[which( (area_checks$s.area<=25)  ) ,]
+        nmask2[nmask2 %in% as.numeric(rownames(filter_obj))] <- 0
+      }
+
+
+
+      dmap3 = distmap(nmask2)
+      ### Detecting individual objects
+      nmask3 = watershed(dmap3, tolerance = 3, ext=31)
+
+
+      ### Computing objects features (Area, perimeter and moment)
+      if (sum(nmask3)!=0) {
+        area_checks <- as.data.frame(computeFeatures.shape(nmask3, pic02) )
+        xy_checks <- as.data.frame(computeFeatures.moment(nmask3, pic02))
+        filter_obj <- area_checks[which( (area_checks$s.area<=20) ) ,]
+        nmask3[nmask3 %in% as.numeric(rownames(filter_obj))] <- 0
+        area_checks <- as.data.frame(computeFeatures.shape(nmask3, pic02))
+        xy_checks <- as.data.frame(computeFeatures.moment(nmask3, pic02))
+        checks_full <- cbind.data.frame(area_checks,xy_checks)
+      }
+
+
+      # pic.out5 <- paintObjects( (nmask3), (pic0), opac = c(0, 1), col = c(NA, "red"), thick = TRUE, closed = TRUE)
+      # display(pic.out5, method = "raster")
+      # text(x = 700, y = 200, label = filelist_GW[i], adj = c(0,1), col = "white", cex = 1.6)
+      # display(colorLabels(getFrame(nmask3, 1)), all=TRUE)
+
+      # nmask3DD <- nmask3
+      # nmask3DD[nmask3==0] <- 1
+      # nmask3DD[nmask3!=0] <- 0
+      # pic0[,,1] <- nmask3DD*pic0[,,1]
+      # pic0[,,2] <- nmask3DD*pic0[,,2]
+      # pic0[,,3] <- nmask3DD*pic0[,,3]
+
+      # display(colorLabels(nmask_testL+pos3+nmask_testR+pos4+nmask_testPT+pos5), method = "raster")
+      # text(x = 700, y = 200, label = filelist_GW[i], adj = c(0,1), col = "white", cex = 1.6)
+
+      # display(colorLabels(getFrame(nmask3,1) ) + pic0, method = "raster")
+      # text(x = 700, y = 200, label = filelist_GW[i], adj = c(0,1), col = "white", cex = 1.6)
+
+      ### Displaying area , segements , collase and checks
+      # display(colorLabels(nmask_testL+pos3+nmask_testR+pos4+nmask_testPT+pos5+resize(nmask3,2040)), method = "raster")
+      # text(x = 700, y = 200, label = filelist_GW[i], adj = c(0,1), col = "white", cex = 1.6)
+
+
+      if (sum(nmask3)!=0) {
+
+        ### Calculating distance from pith to checks -  for each check ########
+        length_Pith_to_check <- c()
+        for (j in 1:nrow(checks_full)) {
+
+          pith_to_check <-  nrow(getBresenham2DSegment(pith[1],pith[2],
+                                                       as.integer(checks_full[j,]$m.cx),as.integer(checks_full[j,]$m.cy)))
+          length_Pith_to_check <- c(length_Pith_to_check,pith_to_check)
+        }
+        ##################################################################
+
+        checks_full$pith_to_check <- length_Pith_to_check
+        checks_full$treeID <- filelist_GW[i]
+        DW_Data2 <- rbind.data.frame(DW_Data2,checks_full)
+      }
+
+
+      ##### Display
+      pic0_DS1_checks <- resize(pic0,2040)
+      nmask_DS1_checks <- resize(nmask3,2040)
+
+
+
+    }
+
+
+    pic.out1 <- paintObjects(nmask_GS1_area, pic0_GS1_area, opac = c(1, 1), col = c("red", NA), thick = TRUE, closed = TRUE)
+    pic.out2 <- paintObjects(nmask_DS1_area, pic0_DS1_area, opac = c(1, 1), col = c("red", NA), thick = TRUE, closed = TRUE)
+    pic.out4 <- paintObjects(nmask_DS1_checks, pic0_DS1_checks, opac = c(1, 1), col = c("red", "red"), thick = TRUE, closed = TRUE)
+
+
+    ### Overlaping green wedge and dried wedge mask
+    ### diff for translation
+    Diff_x <- DW_Data1[which(DW_Data1$treeID==filelist_GW[i]),]$m.cx-GW_Data[which(GW_Data$treeID==filelist_GW[i]),]$m.cx
+    Diff_y <- DW_Data1[which(DW_Data1$treeID==filelist_GW[i]),]$m.cy-GW_Data[which(GW_Data$treeID==filelist_GW[i]),]$m.cy
+    ### Diff for rotation
+    A_diff <- DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Dried"),]$pith_x - DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Dried"),]$mid_x
+    B_diff <- DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Dried"),]$pith_y - DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Dried"),]$mid_y
+    angle1 <- tan(A_diff/B_diff)*180/pi
+    A_diff_GW <- DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Green"),]$pith_x - DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Green"),]$mid_x
+    B_diff_GW <- DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Green"),]$pith_y - DW_Data3[which(DW_Data3$treeID==filelist_GW[i] & DW_Data3$type=="Green"),]$mid_y
+    angle2 <- tan(A_diff_GW/B_diff_GW)*180/pi
+    img_translate = translate(nmask_DS1_area, c(-Diff_x,-Diff_y), bg.col = "black")
+    img_rotate_dried = EBImage::rotate(img_translate, angle1, output.dim = c(nrow(img_translate), ncol(img_translate)), bg.col = "black")
+    img_rotate_green = EBImage::rotate(pic0_GS1_area, angle2, output.dim = c(nrow(img_translate), ncol(img_translate)), bg.col = "black")
+    pic.out6 = paintObjects(img_rotate_dried, toRGB(img_rotate_green), col=c("red", "yellow"), opac=c(1, 0.3), thick=TRUE)
+
+
+    blackMask <- nmask_GS1_area
+    blackMask[blackMask==1] <- 0
+
+    comb1 <- EBImage::combine(
+      pic0_GS1_area,
+      colorLabels(greenWedgeSegmentation),
+      pic.out6,
+
+      pic0_DS1_area,
+      colorLabels(driedWedgeSegmentation1+nmask_DS1_checks),
+      toRGB(blackMask)
+
+      )
+
+
+    img_Tile <- EBImage::tile(comb1,3)
+
+    EBImage::display(img_Tile, method = "raster")
+
+
+
+
+  }
+
+
+
+}
+
+
+
+```
+
+

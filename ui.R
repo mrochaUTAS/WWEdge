@@ -8,7 +8,6 @@ library(fs)
 
 ui = fluidPage(
   sliderInput("slider", "Slider", 1, 100, 50),
-  
 
   fileInput("myFileG", "Upload green wedge images", accept = c('image/png', 'image/jpeg'), multiple = TRUE),
   
