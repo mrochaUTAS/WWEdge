@@ -16,8 +16,10 @@ library(rmarkdown)
 
 server <-  function(input, output, session) {
 
-  # unlink("Green/*.jpg")
-  # unlink("Dried/*.jpg")
+  unlink("Green/*.jpg")
+  unlink("Dried/*.jpg")
+  dir.create("Green")
+  dir.create("Dried")
   
   observeEvent(input$myFileG, {
     inFile <- input$myFileG
