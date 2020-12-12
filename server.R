@@ -47,30 +47,36 @@ server <-  function(input, output, session) {
                  
                 )
   
-  output$report <- downloadHandler(
+  observeEvent(input$do, {
     
-    # For  output
-    filename = "report001.html",
-    
-    content = function(file) {
-      
-      withProgress(message = 'Rendering, please wait!', {
-
+     withProgress(message = 'Rendering, please wait!', {
       tempReport <- "rmarkdown1.Rmd"
-      
       # Set up parameters to pass to Rmd document
       params <- list(n = input$slider,
                      pathG = parseDirPath(volumes, input$directoryG),
                      pathD = parseDirPath(volumes, input$directoryD))
       
-      rmarkdown::render(tempReport, output_file = file,
+      rmarkdown::render(tempReport, output_file = "report01.html",
                         params = params,
                         envir = new.env(parent = globalenv())
-      )
-    }
-  )
+      )})
+     
+    
+    session$sendCustomMessage(type = 'testmessage',
+                              message = 'Thank you for clicking')
+  })
+  
+  output$report <- downloadHandler(
 
-    })
+    filename = function() {
+          paste("report01.html")
+        },
+        content = function(con) {
+          file.copy("report01.html", con)
+        }
+      )
+  
+  
   
   }
   
