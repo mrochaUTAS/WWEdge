@@ -30,11 +30,11 @@ params:
 ##############################################
 
 library("EBImage")
-library("stringr")
-library("AFM")
-library("dplyr")
-library("ggplot2")
-library(rmarkdown)
+# library("stringr")
+# library("AFM")
+# library("dplyr")
+# library("ggplot2")
+# library(rmarkdown)
 ###################################################################
 ### Step 1 : Total Area and checks area measurement of dried wedges
 ###################################################################
