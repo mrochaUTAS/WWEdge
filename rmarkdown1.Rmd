@@ -34,7 +34,6 @@ library("stringr")
 library("AFM")
 library("dplyr")
 library("ggplot2")
-library("knitr")
 ###################################################################
 ### Step 1 : Total Area and checks area measurement of dried wedges
 ###################################################################
@@ -1040,8 +1039,186 @@ for (i in 1:length(filelist_GW)) {
 
 }
 
+# ### Extracting sections (excluding hats)
+# DW_Data4_D <- DW_Data4[which(DW_Data4$type=="Dried"),]
+# DW_Data4_D <- DW_Data4_D[,c(1,7)]
+# colnames(DW_Data4_D)[1] <- "Hats"
+# DW_Data1 <- DW_Data1[,c(1,12)]
+# colnames(DW_Data1)[1] <- "Sections"
+# 
+# Dried_sections <- cbind.data.frame(DW_Data4_D,DW_Data1)
+# Dried_sections$CSD <- Dried_sections$Sections-Dried_sections$Hats
+# 
+# DW_Data4_G <- DW_Data4[which(DW_Data4$type=="Green"),]
+# DW_Data4_G <- DW_Data4_G[,c(1,7)]
+# colnames(DW_Data4_G)[1] <- "Hats"
+# GW_Data <- GW_Data[,c(1,12)]
+# colnames(GW_Data)[1] <- "Sections"
+# 
+# Green_Sections <- cbind.data.frame(DW_Data4_G, GW_Data)
+# Green_Sections$CSG <- Green_Sections$Sections-Green_Sections$Hats
+# 
+# Sections_Automatic <- merge(Dried_sections[,c(4,5)],Green_Sections[,c(4,5)], by="treeID")
+# 
+# 
+# Sections_D_Auto <- Sections_Automatic[,c(1,2,4,5)]
+# Sections_D_Auto$type2 <- "section"
+# colnames(Sections_D_Auto)[2] <- "Dried"
+# 
+# Sections_G_Auto <- Sections_Automatic[,c(1,3,4,5)]
+# Sections_G_Auto$type2 <- "section"
+# colnames(Sections_G_Auto)[2] <- "Green"
+# 
+# 
+# ### DW_Data6 (Shrinkage traits information from automated detection)
+# wedge_full_ID <- unlist((strsplit(DW_Data6$treeID, "_")))
+# greenID1 <- c()
+# greenID2 <- c()
+# greenID3 <- c()
+# greenID4 <- c()
+# 
+# for (i in seq(1,length(wedge_full_ID),4)) {
+#   IDss <- wedge_full_ID[i]
+#   greenID1 <- c(greenID1,IDss)
+# }
+# for (i in seq(2,length(wedge_full_ID),4)) {
+#   IDss <- wedge_full_ID[i]
+#   greenID2 <- c(greenID2,IDss)
+# }
+# for (i in seq(3,length(wedge_full_ID),4)) {
+#   IDss <- wedge_full_ID[i]
+#   greenID3 <- c(greenID3,IDss)
+# }
+# for (i in seq(4,length(wedge_full_ID),4)) {
+#   IDss <- wedge_full_ID[i]
+#   greenID4 <- c(greenID4,IDss)
+# }
+# 
+# DW_Data6$site <- greenID1
+# DW_Data6$tree <- greenID2
+# DW_Data6$wedge <- greenID3
+# DW_Data6$side <- greenID4
+# DW_Data6$treeID <- paste(DW_Data6$site,
+#                          (ifelse(as.numeric(DW_Data6$tree)<10,paste("0",as.numeric(DW_Data6$tree), sep = ""),
+#                                  as.character(DW_Data6$tree))), sep = "")
+# 
+# DW_Data6 <- DW_Data6[which(DW_Data6$side=="s1.jpg"),]
+# 
+# DW_Data6_G <- DW_Data6[which(DW_Data6$type=="Green"),c(1,7,9:11)]
+# colnames(DW_Data6_G)[1] <- "Green"
+# ### insert green c-s
+# DW_Data6_G <- rbind.data.frame(DW_Data6_G, Sections_G_Auto)
+# 
+# DW_Data6_D <- DW_Data6[which(DW_Data6$type=="Dried"),c(1,7,9:11)]
+# colnames(DW_Data6_D)[1] <- "Dried"
+# ### insert dried c-s
+# # DW_Data6_D <- rbind.data.frame(DW_Data6_D, Sections_D_Auto)
+# DW_Data6_G <- DW_Data6_G[order(DW_Data6_G$treeID,DW_Data6_G$type2),]
+# DW_Data6_D <- DW_Data6_D[which(DW_Data6_D$type2 %in% c("Segment_L","Segment_R","Segment_T","Segment_M","Area","section")),]
+# DW_Data6_D <- DW_Data6_D[order(DW_Data6_D$treeID,DW_Data6_D$type2),]
+# DW_Data6_FULL <- cbind.data.frame(Green=DW_Data6_G$Green,
+#                                   DW_Data6_D)
+# 
+# ### Final DF for automated shrinkage assessment
+# DW_Data6_FULL$Shrinkage <- round((DW_Data6_FULL$Green-DW_Data6_FULL$Dried)/DW_Data6_FULL$Green*100,1)
+# 
+# 
+# ######################
+# ######################
+# ######################
+# 
+# ### Combining green and dried manual shrinkage trait measurements
+# colnames(calculations_dried)[5] <- "Segment_L"
+# colnames(calculations_dried)[6] <- "Segment_R"
+# colnames(calculations_dried)[9] <- "Segment_T"
+# colnames(calculations_dried)[7] <- "Segment_M"
+# colnames(calculations_dried)[3] <- "Area"
+# colnames(calculations_dried)[1] <- "section"
+# colnames(calculations_dried)[2] <- "sectionB"
+# 
+# Dried_manual <-  calculations_dried[,-c(4,8,11)] %>% pivot_longer(cols = c(Segment_L, Segment_R, Segment_T, Segment_M, Area, section, sectionB),
+#                                                                   names_to = "type2",
+#                                                                   values_to = "Dried")
+# 
+# 
+# colnames(calculations_green)[3] <- "Segment_L"
+# colnames(calculations_green)[4] <- "Segment_R"
+# colnames(calculations_green)[7] <- "Segment_T"
+# colnames(calculations_green)[5] <- "Segment_M"
+# colnames(calculations_green)[1] <- "Area"
+# calculations_green$section <- calculations_green$Area
+# 
+# Green_manual <-  calculations_green[,-c(2,6,9)] %>% pivot_longer(cols = c(Segment_L, Segment_R, Segment_T, Segment_M, Area, section),
+#                                                                  names_to = "type2",
+#                                                                  values_to = "Green")
+# 
+# 
+# Shrinkage_Manual <- cbind.data.frame(Green=Green_manual$Green,Dried_manual[which(Dried_manual$type2!="sectionB"),])  ### temporary remove G12 - need to re-run script
+# 
+# ### Final DF for manual shrinkage assessment
+# ### Manual and Automated assessment DF
+# Shrinkage_full <- merge(DW_Data6_FULL, Shrinkage_Manual, by = c("treeID", "treeID", "type2"), suffixes = c(".auto",".manual"))
+# Shrinkage_full$Shrinkage.auto <- round((abs(Shrinkage_full$Green.auto)-abs(Shrinkage_full$Dried.auto))/abs(Shrinkage_full$Green.auto)*100,1)
+# Shrinkage_full$Shrinkage.manual <- round((abs(Shrinkage_full$Green.manual)-abs(Shrinkage_full$Dried.manual))/abs(Shrinkage_full$Green.manual)*100,1)
+# 
+# # Shrinkage_full$Shrinkage.auto <- ifelse(Shrinkage_full$Shrinkage.auto<0, NA, Shrinkage_full$Shrinkage.auto)
+# # Shrinkage_full$Shrinkage.manual <- ifelse(Shrinkage_full$Shrinkage.manual<0, NA, Shrinkage_full$Shrinkage.manual)
+# 
+# AArea_full <- Dried_manual[which(Dried_manual$type2=="Area"),]
+# colnames(AArea_full)[3] <- "Area_manual"
+# SSection_full <- Dried_manual[which(Dried_manual$type2=="sectionB"),]
+# colnames(SSection_full)[3] <- "sectionB_manual"
+# Collapse_full <- cbind.data.frame(AArea_full, SSection_full)
+# 
+# 
+# AArea_full <- DW_Data6[which(DW_Data6$type2=="Area" & DW_Data6$type=="Dried"), c(7,9,1)]
+# colnames(AArea_full)[3] <- "Area_automated"
+# SSection_full <- DW_Data6[which(DW_Data6$type2=="sectionB" & DW_Data6$type=="Dried"), c(7,9,1)]
+# colnames(SSection_full)[3] <- "sectionB__automated"
+# Collapse_full <- cbind.data.frame(Collapse_full,AArea_full, SSection_full)
+# 
+# 
+# Collapse_full$Collapse.auto <- (round((abs(Collapse_full$Area_automated)-abs(Collapse_full$sectionB__automated))/abs(Collapse_full$Area_automated)*100,1))
+# Collapse_full$Collapse.manual <- (round((abs(Collapse_full$Area_manual)-abs(Collapse_full$sectionB_manual))/abs(Collapse_full$Area_manual)*100,1))
+# 
+# 
+# 
+# 
+# ## Shrinkage table
+# Shrinkage_full %>%
+#   datatable(extensions = 'Buttons',
+#             caption = "Log modulus of elasticity",
+#             options = list(dom = 'Blfrtip',
+#                            buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
+#                            lengthMenu = list(c(50,50,50,-1),
+#                                              c(50,50,50,"All"))))
+# 
+# ## Shrinkage table
+# Collapse_full %>%
+#   datatable(extensions = 'Buttons',
+#             caption = "Log modulus of elasticity",
+#             options = list(dom = 'Blfrtip',
+#                            buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
+#                            lengthMenu = list(c(50,50,50,-1),
+#                                              c(50,50,50,"All"))))
+
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
