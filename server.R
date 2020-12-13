@@ -34,7 +34,7 @@ server <-  function(input, output, session) {
                  restrictions = system.file(package = "base"),
                  allowDirCreate = TRUE,
                  defaultRoot = "wd",
-                 defaultPath='srv/shiny-server/WWEdge/'
+                 defaultPath=''
                  )
 
   shinyDirChoose(input, "directoryD",
@@ -43,7 +43,7 @@ server <-  function(input, output, session) {
                  restrictions = system.file(package = "base"),
                  allowDirCreate = TRUE,
                  defaultRoot = "wd",
-                 defaultPath='srv/shiny-server/WWEdge/'
+                 defaultPath=''
                  
                 )
   
@@ -72,7 +72,7 @@ server <-  function(input, output, session) {
           paste("report01.html")
         },
         content = function(con) {
-          file.copy("report01.html", con)
+          file.copy(file, con)
         }
       )
   
