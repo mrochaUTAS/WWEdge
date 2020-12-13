@@ -5,6 +5,7 @@
 library(shiny)
 library(shinyFiles)
 library(fs)
+library(rmarkdown)
 
 ui = fluidPage(
   sliderInput("slider", "Slider", 1, 100, 50),
