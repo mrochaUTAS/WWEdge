@@ -26,7 +26,7 @@ server <-  function(input, output, session) {
     file.copy(inFile$datapath, file.path("./Dried", inFile$name) )
   })
   
-  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()(), wd='.')
+  volumes <- c(Home = fs::path_home("/srv/shiny-server/WWEdge/"), "R Installation" = R.home(), getVolumes()(), wd='.')
   
   shinyDirChoose(input, "directoryG",
                  roots = volumes,
