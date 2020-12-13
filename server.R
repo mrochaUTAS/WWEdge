@@ -26,15 +26,15 @@ server <-  function(input, output, session) {
     file.copy(inFile$datapath, file.path("./Dried", inFile$name) )
   })
   
-  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()(), wd='.')
+  volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()(), wd='srv/shiny-server/WWEdge/')
   
   shinyDirChoose(input, "directoryG",
                  roots = volumes,
                  session = session,
                  restrictions = system.file(package = "base"),
                  allowDirCreate = TRUE,
-                 defaultRoot = "wd",
-                 defaultPath=''
+                 defaultRoot = "wd"
+                 
                  )
 
   shinyDirChoose(input, "directoryD",
@@ -42,9 +42,8 @@ server <-  function(input, output, session) {
                  session = session,
                  restrictions = system.file(package = "base"),
                  allowDirCreate = TRUE,
-                 defaultRoot = "wd",
-                 defaultPath=''
-                 
+                 defaultRoot = "wd"
+                
                 )
   
   observeEvent(input$do, {
