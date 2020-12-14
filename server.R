@@ -63,17 +63,16 @@ server <-  function(input, output, session) {
   output$report <- downloadHandler(
 
     filename = function() {
-      paste(parseDirPath(volumes, input$directoryR),"/report01.html",sep = "")
+      paste("report01.html")
         },
     
         content = function(con) {
           
-          rmarkdown::render(paste(parseDirPath(volumes, input$directoryR),"/rmarkdown1.Rmd",sep = ""), output_file = "report01.html",
+          out <- rmarkdown::render("rmarkdown1.Rmd" , output_file = "report01.html",
                             params = params,
-                            output_dir = paste(parseDirPath(volumes, input$directoryR),sep = ""),
                             envir = new.env(parent = globalenv()))
                             
-          file.copy(paste(parseDirPath(volumes, input$directoryR),"/report01.html",sep = ""), con)
+          file.copy("report01.html", con)
         }
       )
   
