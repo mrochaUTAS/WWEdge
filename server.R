@@ -71,7 +71,7 @@ server <-  function(input, output, session) {
       
       rmarkdown::render(tempReport, output_file = paste("report01.html", sep = ""),
                         params = params,
-                       output_dir = "./Report/"
+                        output_dir = "./Report/",
                         envir = new.env(parent = globalenv())
       )})
      
