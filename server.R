@@ -61,16 +61,18 @@ server <-  function(input, output, session) {
   
   observeEvent(input$do, {
     
+    tempReport <- "rmarkdown1.Rmd"
+    
      withProgress(message = 'Rendering, please wait!', {
-      tempReport <- "rmarkdown1.Rmd"
+      
       # Set up parameters to pass to Rmd document
       # params <- list(n = input$slider,
       #                pathG = parseDirPath(volumes, input$directoryG),
       #                pathD = parseDirPath(volumes, input$directoryD))
       
-      rmarkdown::render(tempReport, output_file = "report01.html",
+      out1 <- rmarkdown::render("rmarkdown1.Rmd", output_file = "report01",
                         params = params,
-                        output_dir = "/Report/",
+                        #output_dir = "/Report/",
                         envir = new.env(parent = globalenv())
       )})
      
