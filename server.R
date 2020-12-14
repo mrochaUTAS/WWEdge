@@ -64,9 +64,9 @@ server <-  function(input, output, session) {
      withProgress(message = 'Rendering, please wait!', {
       tempReport <- "rmarkdown1.Rmd"
       # Set up parameters to pass to Rmd document
-      params <- list(n = input$slider,
-                     pathG = parseDirPath(volumes, input$directoryG),
-                     pathD = parseDirPath(volumes, input$directoryD))
+      # params <- list(n = input$slider,
+      #                pathG = parseDirPath(volumes, input$directoryG),
+      #                pathD = parseDirPath(volumes, input$directoryD))
       
       rmarkdown::render(tempReport, output_file = "report01.html",
                         params = params,

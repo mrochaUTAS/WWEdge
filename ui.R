@@ -20,6 +20,8 @@ ui = fluidPage(
   
   downloadButton("report", "Generate report"),
   
-  textOutput("checkrender")
+  textOutput("checkrender"),
+  
+  actionButton("do", "Click Me")
 
 )
