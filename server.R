@@ -8,11 +8,11 @@ library(rmarkdown)
 
 server <-  function(input, output, session) {
 
-  unlink("./Green/*.jpg")
-  unlink("./Dried/*.jpg")
+  #unlink("./Green/*.jpg")
+  #unlink("./Dried/*.jpg")
   # dir.create("Green")
   # dir.create("Dried")
-  unlink("./report01.html")
+  #unlink("./report01.html")
   
   observeEvent(input$myFileG, {
     inFile <- input$myFileG
@@ -62,15 +62,14 @@ server <-  function(input, output, session) {
   observeEvent(input$do, {
     
      withProgress(message = 'Rendering, please wait!', {
-      tempReport <- "./rmarkdown1.Rmd"
+      tempReport <- "rmarkdown1.Rmd"
       # Set up parameters to pass to Rmd document
       params <- list(n = input$slider,
                      pathG = parseDirPath(volumes, input$directoryG),
                      pathD = parseDirPath(volumes, input$directoryD))
       
-      rmarkdown::render(tempReport,
+      rmarkdown::render(tempReport, output_file = "report01.html",
                         params = params,
-                       
                         envir = new.env(parent = globalenv())
       )})
      
@@ -82,10 +81,10 @@ server <-  function(input, output, session) {
   output$report <- downloadHandler(
 
     filename = function() {
-          paste(Sys.Date(),"_report01.html", sep = "")
+          paste("report01.html", sep = "")
         },
         content = function(con) {
-          file.copy("./Report/report01.html", con)
+          file.copy("report01.html", con)
         }
       )
   
