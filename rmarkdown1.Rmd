@@ -29,7 +29,7 @@ params:
 ### Author: Manuel Rocha
 ##############################################
 
-library("EBImage")
+#library("EBImage")
 # library("stringr")
 # library("AFM")
 # library("dplyr")
@@ -41,43 +41,43 @@ library("EBImage")
 
 
 
-### Set working directory DESK HARD DISK
-pathName_GW <- as.character(params$pathG)
-pathName_DW <- as.character(params$pathD)
-
-filelist_GW <- list.files(path = pathName_GW , pattern = ".jpg")
-filelist_DW <- list.files(path = pathName_DW , pattern = ".jpg")
-
-GW_Data <- c() # Area
-DW_Data1 <- c() # Area
-DW_Data2 <- c() # Checks
-DW_Data3 <- c() # Radial and Tangential shrinkage
-DW_Data4 <- c() # wedge hat area
-DW_Data5 <- c() # lengths of L-side , R-side  edges (using dried weges) 
-DW_Data6 <- c() # wedge triangle (green and dried)
-DW_Data7 <- c() # Local curvature profiles (L-side and R-side using dried wedges)
-CLength <- c()
-counterxx <- c(0)
-
-
-for (i in 1:length(filelist_GW)) {
-
-  if (filelist_GW[i] %in% filelist_DW) {
-
-    ### Reading GW image
-    pic0 <- resize(readImage( paste(pathName_GW,"/",filelist_DW[i],sep="") ), 2040)
-    pic01 <- pic0
-
-    ####################################
-    ####  Green wedge area calculation
-    ####################################
-
-    ### keeping original picture
-    pic <- gblur(resize(pic0[,,1],2040), sigma = 5)
-
-    ### Changing to grayscale
-    colorMode(pic) <- Grayscale
-    display(pic, method = "raster")
+# ### Set working directory DESK HARD DISK
+# pathName_GW <- as.character(params$pathG)
+# pathName_DW <- as.character(params$pathD)
+# 
+# filelist_GW <- list.files(path = pathName_GW , pattern = ".jpg")
+# filelist_DW <- list.files(path = pathName_DW , pattern = ".jpg")
+# 
+# GW_Data <- c() # Area
+# DW_Data1 <- c() # Area
+# DW_Data2 <- c() # Checks
+# DW_Data3 <- c() # Radial and Tangential shrinkage
+# DW_Data4 <- c() # wedge hat area
+# DW_Data5 <- c() # lengths of L-side , R-side  edges (using dried weges) 
+# DW_Data6 <- c() # wedge triangle (green and dried)
+# DW_Data7 <- c() # Local curvature profiles (L-side and R-side using dried wedges)
+# CLength <- c()
+# counterxx <- c(0)
+# 
+# 
+# for (i in 1:length(filelist_GW)) {
+# 
+#   if (filelist_GW[i] %in% filelist_DW) {
+# 
+#     ### Reading GW image
+#     pic0 <- resize(readImage( paste(pathName_GW,"/",filelist_DW[i],sep="") ), 2040)
+#     pic01 <- pic0
+# 
+#     ####################################
+#     ####  Green wedge area calculation
+#     ####################################
+# 
+#     ### keeping original picture
+#     pic <- gblur(resize(pic0[,,1],2040), sigma = 5)
+# 
+#     ### Changing to grayscale
+#     colorMode(pic) <- Grayscale
+#     display(pic, method = "raster")
 
     # #### Pic preparation
     # pic_mod <- pic
