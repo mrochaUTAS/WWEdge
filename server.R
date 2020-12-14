@@ -61,8 +61,6 @@ server <-  function(input, output, session) {
   
   observeEvent(input$do, {
     
-    tempReport <- "rmarkdown1.Rmd"
-    
      withProgress(message = 'Rendering, please wait!', {
       
       # Set up parameters to pass to Rmd document
@@ -70,9 +68,9 @@ server <-  function(input, output, session) {
       #                pathG = parseDirPath(volumes, input$directoryG),
       #                pathD = parseDirPath(volumes, input$directoryD))
       
-      out1 <- rmarkdown::render("rmarkdown1.Rmd", output_file = "report01",
+      out1 <- rmarkdown::render(paste(parseDirPath(volumes, input$directoryR),"/rmarkdown1.Rmd",sep = ""), output_file = "report01.html",
                         params = params,
-                        #output_dir = "/Report/",
+                        output_dir = paste(parseDirPath(volumes, input$directoryR),sep = ""),
                         envir = new.env(parent = globalenv())
       )})
      
@@ -84,10 +82,10 @@ server <-  function(input, output, session) {
   output$report <- downloadHandler(
 
     filename = function() {
-          paste("report01.html", sep = "")
+      paste(parseDirPath(volumes, input$directoryR),"/report01.html",sep = "")
         },
         content = function(con) {
-          file.copy("/Report/report01.html", con)
+          file.copy(paste(parseDirPath(volumes, input$directoryR),"/report01.html",sep = ""), con)
         }
       )
   

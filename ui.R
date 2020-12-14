@@ -18,6 +18,8 @@ ui = fluidPage(
   
   shinyDirButton("directoryD", "Dried wedges", "Please select a folder of dried wedges"),
   
+  shinyDirButton("directoryR", "Report", "Please select a folder Report"),
+  
   downloadButton("report", "Generate report"),
   
   textOutput("checkrender"),
