@@ -18,14 +18,14 @@ server <-  function(input, output, session) {
     inFile <- input$myFileG
     if (is.null(inFile))
       return()
-    file.copy(inFile$datapath, file.path("./Green", inFile$name) )
+    file.copy(inFile$datapath, file.path("/Green/", inFile$name) )
   })
   
   observeEvent(input$myFileD, {
     inFile <- input$myFileD
     if (is.null(inFile))
       return()
-    file.copy(inFile$datapath, file.path("./Dried", inFile$name) )
+    file.copy(inFile$datapath, file.path("/Dried/", inFile$name) )
   })
   
   volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()(), wd='.')
