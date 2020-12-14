@@ -20,10 +20,7 @@ ui = fluidPage(
   
   shinyDirButton("directoryR", "Report", "Please select a folder Report"),
   
-  downloadButton("report", "Generate report"),
-  
-  textOutput("checkrender"),
-  
-  actionButton("do", "Click Me")
+  downloadButton("report", "Generate report")
+
 
 )
