@@ -12,8 +12,7 @@ server <-  function(input, output, session) {
   # unlink("Dried/*.jpg")
   # dir.create("Green")
   # dir.create("Dried")
-  unlink("./Report/*.html")
-  unlink("./*.html")
+  unlink("report01.html")
   
   observeEvent(input$myFileG, {
     inFile <- input$myFileG
@@ -69,9 +68,8 @@ server <-  function(input, output, session) {
                      pathG = parseDirPath(volumes, input$directoryG),
                      pathD = parseDirPath(volumes, input$directoryD))
       
-      rmarkdown::render(tempReport, output_file = paste("report01.html", sep = ""),
+      rmarkdown::render(tempReport, output_file = "report01.html",
                         params = params,
-                        output_dir = "./Report/",
                         envir = new.env(parent = globalenv())
       )})
      
@@ -83,10 +81,10 @@ server <-  function(input, output, session) {
   output$report <- downloadHandler(
 
     filename = function() {
-          paste(parseDirPath(volumes, input$directoryR),"/report01.html", sep = "")
+          paste(Sys.Date(),"_report01.html", sep = "")
         },
         content = function(con) {
-          file.copy(paste(parseDirPath(volumes, input$directoryR),"/report01.html", sep = ""), con)
+          file.copy("report01.html", con)
         }
       )
   
