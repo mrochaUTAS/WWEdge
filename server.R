@@ -12,21 +12,21 @@ server <-  function(input, output, session) {
   # unlink("Dried/*.jpg")
   # dir.create("Green")
   # dir.create("Dried")
-  unlink("/Report/*.html")
-  unlink("*.html")
+  unlink("./Report/*.html")
+  unlink("./*.html")
   
   observeEvent(input$myFileG, {
     inFile <- input$myFileG
     if (is.null(inFile))
       return()
-    file.copy(inFile$datapath, file.path("/Green", inFile$name) )
+    file.copy(inFile$datapath, file.path("./Green", inFile$name) )
   })
   
   observeEvent(input$myFileD, {
     inFile <- input$myFileD
     if (is.null(inFile))
       return()
-    file.copy(inFile$datapath, file.path("/Dried", inFile$name) )
+    file.copy(inFile$datapath, file.path("./Dried", inFile$name) )
   })
   
   volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()(), wd='.')
@@ -69,8 +69,9 @@ server <-  function(input, output, session) {
                      pathG = parseDirPath(volumes, input$directoryG),
                      pathD = parseDirPath(volumes, input$directoryD))
       
-      rmarkdown::render(tempReport, output_file = paste("/report01.html", sep = ""),
+      rmarkdown::render(tempReport, output_file = paste("report01.html", sep = ""),
                         params = params,
+                       output_dir = "./Report/"
                         envir = new.env(parent = globalenv())
       )})
      
