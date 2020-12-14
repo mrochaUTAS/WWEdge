@@ -48,6 +48,16 @@ server <-  function(input, output, session) {
                  
                 )
   
+  shinyDirChoose(input, "directoryR",
+                 roots = volumes,
+                 session = session,
+                 restrictions = system.file(package = "base"),
+                 allowDirCreate = TRUE,
+                 defaultRoot = "wd",
+                 defaultPath=''
+                 
+  )
+  
   observeEvent(input$do, {
     
      withProgress(message = 'Rendering, please wait!', {
@@ -57,8 +67,10 @@ server <-  function(input, output, session) {
                      pathG = parseDirPath(volumes, input$directoryG),
                      pathD = parseDirPath(volumes, input$directoryD))
       
-      rmarkdown::render(tempReport, output_file = "report01.html",
+      rmarkdown::render(tempReport, output_file = "report01",
                         params = params,
+                        output_format = "html_document",
+                        output_dir = paste(parseDirPath(volumes, input$directoryR)),
                         envir = new.env(parent = globalenv())
       )})
      
@@ -70,10 +82,10 @@ server <-  function(input, output, session) {
   output$report <- downloadHandler(
 
     filename = function() {
-          paste("report01.html")
+          paste(parseDirPath(volumes, input$directoryR),"/report01.html", sep = "")
         },
         content = function(con) {
-          file.copy(file, con)
+          file.copy(paste(parseDirPath(volumes, input$directoryR),"/report01.html", sep = ""), con)
         }
       )
   
