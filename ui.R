@@ -13,19 +13,16 @@ ui = fluidPage(
   fileInput("myFileG", "Upload green wedge images", accept = c('image/png', 'image/jpeg'), multiple = TRUE),
  
   fileInput("myFileD", "Upload dried wedge images", accept = c('image/png', 'image/jpeg'), multiple = TRUE),
- 
 
   shinyDirButton("directoryG", "Green wedges", "Please select a folder of green wedges"),
- 
   
   shinyDirButton("directoryD", "Dried wedges", "Please select a folder of dried wedges"),
- 
+  
+  shinyDirButton("directoryR", "Dried wedges", "Please select Report folder"),
   
   downloadButton("report", "Generate report"),
-
   
   textOutput("checkrender"),
-  
   
   actionButton("do", "Click Me")
 
