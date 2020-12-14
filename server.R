@@ -8,24 +8,24 @@ library(rmarkdown)
 
 server <-  function(input, output, session) {
 
-  # unlink("Green/*.jpg")
-  # unlink("Dried/*.jpg")
+  unlink("./Green/*.jpg")
+  unlink("./Dried/*.jpg")
   # dir.create("Green")
   # dir.create("Dried")
-  unlink("report01.html")
+  unlink("./report01.html")
   
   observeEvent(input$myFileG, {
     inFile <- input$myFileG
     if (is.null(inFile))
       return()
-    file.copy(inFile$datapath, file.path("/Green", inFile$name) )
+    file.copy(inFile$datapath, file.path("./Green", inFile$name) )
   })
   
   observeEvent(input$myFileD, {
     inFile <- input$myFileD
     if (is.null(inFile))
       return()
-    file.copy(inFile$datapath, file.path("/Dried", inFile$name) )
+    file.copy(inFile$datapath, file.path("./Dried", inFile$name) )
   })
   
   volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), getVolumes()(), wd='.')
@@ -62,7 +62,7 @@ server <-  function(input, output, session) {
   observeEvent(input$do, {
     
      withProgress(message = 'Rendering, please wait!', {
-      tempReport <- "rmarkdown1.Rmd"
+      tempReport <- "./rmarkdown1.Rmd"
       # Set up parameters to pass to Rmd document
       params <- list(n = input$slider,
                      pathG = parseDirPath(volumes, input$directoryG),
@@ -70,7 +70,7 @@ server <-  function(input, output, session) {
       
       rmarkdown::render(tempReport,
                         params = params,
-                        output_dir = "/Report/",
+                       
                         envir = new.env(parent = globalenv())
       )})
      
@@ -85,7 +85,7 @@ server <-  function(input, output, session) {
           paste(Sys.Date(),"_report01.html", sep = "")
         },
         content = function(con) {
-          file.copy("/Report/report01.html", con)
+          file.copy("./Report/report01.html", con)
         }
       )
   
