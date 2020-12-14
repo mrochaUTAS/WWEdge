@@ -67,7 +67,7 @@ server <-  function(input, output, session) {
                      pathG = parseDirPath(volumes, input$directoryG),
                      pathD = parseDirPath(volumes, input$directoryD))
       
-      rmarkdown::render(tempReport, output_file = paste(parseDirPath(volumes, input$directoryR),"/report01.html", sep = ""),
+      rmarkdown::render(tempReport, output_file = paste(Sys.time(), "report01.html", sep = ""),
                         params = params,
                         envir = new.env(parent = globalenv())
       )})
