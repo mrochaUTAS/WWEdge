@@ -1,5 +1,5 @@
 # WWEdge
-R Shiny app for checking and shrinkage quantification using disc-derived wood wedges
+An R-script for the automatic quantification of wood checking and shrinkage  using disc-derived wedges
 
 
 Cite this R-script
