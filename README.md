@@ -1,5 +1,5 @@
 # WWEdge
-An R-script for the automatic quantification of wood checking and shrinkage  using disc-derived wedges (WWEdge_v1.1.R)
+An R-based system for the automatic quantification of wood checking and shrinkage  using disc-derived wedges (WWEdge_v1.1.R)
 
 ![Example_GitHub](https://user-images.githubusercontent.com/72726521/156832134-4ef24187-9d0d-4d5f-bbc8-311e7c11297a.jpg)
 
